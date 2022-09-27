@@ -1,9 +1,5 @@
 import tensorflow as tf
 
 
-def main():
+def training():
     print(tf.version.VERSION)
-
-
-if __name__ == '__main__':
-    main()
