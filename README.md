@@ -4,6 +4,6 @@
 ---
 
 That is my implementation for Open Image Detection (RVC) Challenge. 
-Dataset downloaded from Open Image Dataset ([dataset link](https://storage.googleapis.com/openimages/web/challenge2019_downloads.html))
+Dataset downloaded from Open Image Dataset ([dataset link](https://storage.googleapis.com/openimages/web/download.html))
 
 
