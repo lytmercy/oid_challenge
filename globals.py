@@ -19,7 +19,7 @@ global MODEL_WEIGHT_SAVING_PATH
 
 # Set globals
 BATCH_SIZE = 22
-IMAGE_SIZE = (256, 256)
+IMAGE_SIZE = (224, 224)
 EPOCHS = 5
 CLASSES_NAME = ["Bird", "Bear", "Cat"]
 
