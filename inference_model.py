@@ -1,5 +1,5 @@
 import tensorflow as tf
 
 
-def inference():
+def getting_inference():
     print(tf.version.VERSION)

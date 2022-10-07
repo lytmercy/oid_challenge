@@ -1,5 +1,5 @@
 import tensorflow as tf
 
 
-def build():
+def build_model():
     print(tf.version.VERSION)
