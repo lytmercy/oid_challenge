@@ -5,8 +5,8 @@ from keras.utils import image_utils, dataset_utils
 # Importing other libraries
 import numpy as np
 import pandas as pd
-import os
 import cv2
+import os
 
 # Importing global variables
 from globals import BATCH_SIZE, IMAGE_SIZE, ALLOW_IMAGE_FORMATS
@@ -16,7 +16,7 @@ class OIDDataSet:
     """"""
 
     def __init__(self, grond_truth_df, class_description_df, class_names,
-                 label_mode="int", batch_size=BATCH_SIZE, image_size=IMAGE_SIZE,
+                 label_mode="binary", batch_size=BATCH_SIZE, image_size=IMAGE_SIZE,
                  color_channels=3, random_seed=17, shuffle=True, interpolation="bilinear"):
         """"""
         self.image_paths = None
@@ -51,11 +51,16 @@ class OIDDataSet:
                                                                formats=ALLOW_IMAGE_FORMATS,
                                                                shuffle=self.shuffle, seed=self.random_seed)
 
+        # Prepare class description dataframe
+        self.class_description_df = self.class_description_df.loc[
+            self.class_description_df["LabelName"].isin(self.class_names)
+        ]
+        # Prepare class code list
+        class_code_list = self.class_description_df.loc[:, "LabelCode"].tolist()
+
         # Prepare ground truth
         for image_path in self.image_paths:
             image_id = image_path.split("\\")[-1].replace(".jpg", "")
-            class_code_list = self.class_description_df.loc[self.class_description_df["LabelName"].isin(self.class_names),
-                                                            "LabelCode"].tolist()
 
             image_ground_truth_df = self.ground_truth_df.loc[self.ground_truth_df["ImageID"] == image_id]
             image_ground_truth_df = image_ground_truth_df.loc[image_ground_truth_df["LabelName"].isin(class_code_list)]
@@ -75,30 +80,32 @@ class OIDDataSet:
                 # y_min, y_max = int(y_min * image_shape[0]), int(y_max * image_shape[0])
 
                 # Defining which class in inside this bounding box
-                class_name = self.class_description_df.loc[self.class_description_df["LabelCode"] ==
-                                                           image_ground_truth_df.LabelName[bbox_index],
-                                                           "LabelName"].tolist()[0]
-                print(class_name)
+                # class_name = self.class_description_df.loc[self.class_description_df["LabelCode"] ==
+                #                                            image_ground_truth_df.LabelName[bbox_index],
+                #                                            "LabelName"].tolist()[0]
 
                 classes_name_one_hot_df = pd.get_dummies(self.class_description_df,
                                                          columns=["LabelName"],
                                                          prefix="Label")
-                print(classes_name_one_hot_df.head())
 
                 class_name_one_hot = classes_name_one_hot_df.loc[classes_name_one_hot_df["LabelCode"] ==
                                                                  image_ground_truth_df.LabelName[bbox_index],
-                                                                 "Label_Bear", "Label_Bird", "Label_Cat"].tolist()
-                print(class_name_one_hot)
+                                                                 ["Label_Bear", "Label_Bird", "Label_Cat"]]
+
+                class_name_one_hot = class_name_one_hot.iloc[0, :].tolist()
+                class_name_one_hot.append(0)
+                # Define coordinates bbox
+                bbox_coordinates = [x_min, y_min, x_max, y_max]
 
                 # Making ground truth variable for one image
-                result_ground_truth = (class_name_one_hot, (x_min, y_min, x_max, y_max))
-                tensor_result = tf.constant(result_ground_truth)
-
+                # np_result = np.array(, dtype=np.float32)
+                tensor_result = tf.constant([class_name_one_hot, bbox_coordinates], dtype=tf.float32)
                 # Filling "labels" variable
-                self.labels = np.append(self.labels, tensor_result)
+                self.labels = np.stack([self.labels, tensor_result])
+                print(self.labels)
 
         dataset = self.paths_and_labels_to_dataset(
-            num_classes=len(self.class_names),
+            num_classes=len(self.class_names)
         )
 
         dataset = dataset.prefetch(tf.data.AUTOTUNE)
@@ -125,7 +132,10 @@ class OIDDataSet:
             lambda x: self.load_image(x), num_parallel_calls=tf.data.AUTOTUNE
         )
         if self.label_mode:
+            self.labels = tf.constant(self.labels)
             label_ds = dataset_utils.labels_to_dataset(self.labels, self.label_mode, num_classes)
+            # for label in label_ds.take(1):
+            #     print(label)
             image_ds = tf.data.Dataset.zip((image_ds, label_ds))
         return image_ds
 
@@ -138,4 +148,3 @@ class OIDDataSet:
         image = tf.image.resize(image, self.image_size, method=self.interpolation)
         image.set_shape((self.image_size[0], self.image_size[1], self.color_channels))
         return image
-
