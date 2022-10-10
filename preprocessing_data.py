@@ -32,7 +32,7 @@ class OIDDataSet:
         self.shuffle = shuffle
 
         # Defining "labels" variable
-        self.labels = np.array([])
+        self.labels = np.array([[]])
 
         self.interpolation = image_utils.get_interpolation(interpolation)
 
@@ -67,6 +67,8 @@ class OIDDataSet:
 
             bboxes_index = image_ground_truth_df.index.tolist()
 
+            bboxes_coordinates = np.array([[]])
+
             # image = cv2.imread(image_path)
             # image_shape = image.shape()
 
@@ -98,11 +100,19 @@ class OIDDataSet:
                 bbox_coordinates = [x_min, y_min, x_max, y_max]
 
                 # Making ground truth variable for one image
-                # np_result = np.array(, dtype=np.float32)
-                tensor_result = tf.constant([class_name_one_hot, bbox_coordinates], dtype=tf.float32)
-                # Filling "labels" variable
-                self.labels = np.stack([self.labels, tensor_result])
-                print(self.labels)
+                labeled_bbox = tf.constant([class_name_one_hot, bbox_coordinates], dtype=tf.float32)
+
+                # Filling numpy array with labeled bbox
+                if bboxes_coordinates.size == 0:
+                    bboxes_coordinates = labeled_bbox.numpy()
+                else:
+                    bboxes_coordinates = np.append(bboxes_coordinates, labeled_bbox, axis=0)
+
+            # Filling "labels" variable
+            if self.labels.size == 0:
+                self.labels = np.array([bboxes_coordinates])
+            else:
+                self.labels = np.append(self.labels, [bboxes_coordinates], axis=0)
 
         dataset = self.paths_and_labels_to_dataset(
             num_classes=len(self.class_names)
@@ -134,8 +144,6 @@ class OIDDataSet:
         if self.label_mode:
             self.labels = tf.constant(self.labels)
             label_ds = dataset_utils.labels_to_dataset(self.labels, self.label_mode, num_classes)
-            # for label in label_ds.take(1):
-            #     print(label)
             image_ds = tf.data.Dataset.zip((image_ds, label_ds))
         return image_ds
 
@@ -147,4 +155,4 @@ class OIDDataSet:
         )
         image = tf.image.resize(image, self.image_size, method=self.interpolation)
         image.set_shape((self.image_size[0], self.image_size[1], self.color_channels))
-        return image
+        return image/255.
