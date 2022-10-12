@@ -9,7 +9,7 @@ import cv2
 import os
 
 # Importing global variables
-from globals import BATCH_SIZE, IMAGE_SIZE, ALLOW_IMAGE_FORMATS
+from globals import BATCH_SIZE, IMAGE_SIZE, ALLOW_IMAGE_FORMATS, MAX_BBOXES
 
 
 class OIDDataSet:
@@ -67,46 +67,48 @@ class OIDDataSet:
 
             bboxes_index = image_ground_truth_df.index.tolist()
 
-            bboxes_coordinates = np.array([[]])
+            bboxes_coordinates = np.zeros(shape=(10, 2, 4), dtype=np.float32)
+            bbox_count = 0
 
             # image = cv2.imread(image_path)
             # image_shape = image.shape()
 
             for bbox_index in bboxes_index:
-                # Extract coordinates from image_ground_truth_df
-                x_min, x_max = image_ground_truth_df.XMin[bbox_index], image_ground_truth_df.XMax[bbox_index]
-                y_min, y_max = image_ground_truth_df.YMin[bbox_index], image_ground_truth_df.YMax[bbox_index]
-
-                # Denormalize coordinates
-                # x_min, x_max = int(x_min * image_shape[1]), int(x_max * image_shape[1])
-                # y_min, y_max = int(y_min * image_shape[0]), int(y_max * image_shape[0])
-
-                # Defining which class in inside this bounding box
-                # class_name = self.class_description_df.loc[self.class_description_df["LabelCode"] ==
-                #                                            image_ground_truth_df.LabelName[bbox_index],
-                #                                            "LabelName"].tolist()[0]
-
-                classes_name_one_hot_df = pd.get_dummies(self.class_description_df,
-                                                         columns=["LabelName"],
-                                                         prefix="Label")
-
-                class_name_one_hot = classes_name_one_hot_df.loc[classes_name_one_hot_df["LabelCode"] ==
-                                                                 image_ground_truth_df.LabelName[bbox_index],
-                                                                 ["Label_Bear", "Label_Bird", "Label_Cat"]]
-
-                class_name_one_hot = class_name_one_hot.iloc[0, :].tolist()
-                class_name_one_hot.append(0)
-                # Define coordinates bbox
-                bbox_coordinates = [x_min, y_min, x_max, y_max]
-
-                # Making ground truth variable for one image
-                labeled_bbox = tf.constant([class_name_one_hot, bbox_coordinates], dtype=tf.float32)
-
-                # Filling numpy array with labeled bbox
-                if bboxes_coordinates.size == 0:
-                    bboxes_coordinates = labeled_bbox.numpy()
+                if bbox_count == MAX_BBOXES:
+                    break
                 else:
-                    bboxes_coordinates = np.append(bboxes_coordinates, labeled_bbox, axis=0)
+                    # Extract coordinates from image_ground_truth_df
+                    x_min, x_max = image_ground_truth_df.XMin[bbox_index], image_ground_truth_df.XMax[bbox_index]
+                    y_min, y_max = image_ground_truth_df.YMin[bbox_index], image_ground_truth_df.YMax[bbox_index]
+
+                    # Denormalize coordinates
+                    # x_min, x_max = int(x_min * image_shape[1]), int(x_max * image_shape[1])
+                    # y_min, y_max = int(y_min * image_shape[0]), int(y_max * image_shape[0])
+
+                    # Defining which class in inside this bounding box
+                    # class_name = self.class_description_df.loc[self.class_description_df["LabelCode"] ==
+                    #                                            image_ground_truth_df.LabelName[bbox_index],
+                    #                                            "LabelName"].tolist()[0]
+
+                    classes_name_one_hot_df = pd.get_dummies(self.class_description_df,
+                                                             columns=["LabelName"],
+                                                             prefix="Label")
+
+                    class_name_one_hot = classes_name_one_hot_df.loc[classes_name_one_hot_df["LabelCode"] ==
+                                                                     image_ground_truth_df.LabelName[bbox_index],
+                                                                     ["Label_Bear", "Label_Bird", "Label_Cat"]]
+
+                    class_name_one_hot = class_name_one_hot.iloc[0, :].tolist()
+                    class_name_one_hot.append(0)
+                    # Define coordinates bbox
+                    bbox_coordinates = [x_min, y_min, x_max, y_max]
+
+                    # Making ground truth variable for one image
+                    labeled_bbox = tf.constant([class_name_one_hot, bbox_coordinates], dtype=tf.float32)
+
+                    # Filling numpy array with labeled bbox
+                    bboxes_coordinates[bbox_count] = labeled_bbox
+                    bbox_count += 1
 
             # Filling "labels" variable
             if self.labels.size == 0:

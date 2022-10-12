@@ -5,6 +5,7 @@ global BATCH_SIZE
 global IMAGE_SIZE
 global EPOCHS
 global CLASSES_NAME
+global MAX_BBOXES
 
 global CLASSES_PATH
 global TRAIN_DIR
@@ -27,6 +28,7 @@ BATCH_SIZE = 22
 IMAGE_SIZE = (224, 224)
 EPOCHS = 5
 CLASSES_NAME = ["Bear", "Bird", "Cat"]
+MAX_BBOXES = 10
 
 CLASSES_PATH = "dataset\\class-descriptions.csv"
 TRAIN_DIR = "dataset\\train"
