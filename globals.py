@@ -41,7 +41,7 @@ TEST_DIR = "dataset\\test"
 TEST_DETECTION_BBOX = "dataset\\test-annotations-bbox.csv"
 TEST_DETECTION_IMAGE_LABELS = "dataset\\test-images.csv"
 
-WEIGHT_CHECKPOINT_PATH = "model\\oid_checkpoint_weight\\oid_weight.ckpt"
-MODEL_WEIGHT_SAVING_PATH = "model\\oid_model_weight\\oid_model"
+WEIGHT_CHECKPOINT_PATH = "model_weights\\oid_checkpoint_weight\\oid_weight.ckpt"
+MODEL_WEIGHT_SAVING_PATH = "model_weights\\oid_model_weight\\oid_model"
 
 ALLOW_IMAGE_FORMATS = (".jpg", ".jpeg", "png")

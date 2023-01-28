@@ -13,12 +13,28 @@ from globals import BATCH_SIZE, IMAGE_SIZE, ALLOW_IMAGE_FORMATS, MAX_BBOXES
 
 
 class OIDDataSet:
-    """"""
+    """Class for creating a dataset object with the method for processing data from different subsets."""
 
     def __init__(self, grond_truth_df, class_description_df, class_names,
                  label_mode="binary", batch_size=BATCH_SIZE, image_size=IMAGE_SIZE,
                  color_channels=3, random_seed=17, shuffle=True, interpolation="bilinear"):
-        """"""
+        """
+        Init method for remaining all information about a dataset;
+        :param grond_truth_df: pandas DataFrame that contains all names & boundary boxes of the image;
+        :param class_description_df: pandas DataFrame that contains a list of all classes from the dataset;
+        :param class_names: list of class names that will be use;
+        :param label_mode: String describing the encoding of "labels". Options are:
+                            - "binary" indicates that the labels (there can be only 2) are encoded as
+                              'float32' scalars with values 0 or 1 (e.g. for 'binary_crossentropy').
+                            - "categorical" means that the labels are mapped into a categorical vector.
+                              (e.g. for 'categorical_crossentropy' loss).
+        :param batch_size: int size of batch for Dataset;
+        :param image_size: tuples with 2 int numbers that be width and height of an image;
+        :param color_channels: int number of colour encoding channels in an image;
+        :param random_seed: int number of random state for getting same result from dataset everytime;
+        :param shuffle: boolean variable that says shuffle this dataset or not;
+        :param interpolation: string with the name of the interpolation method for resizing an image.
+        """
         self.image_paths = None
         self.base_path = None
         self.ground_truth_df = grond_truth_df
@@ -60,14 +76,15 @@ class OIDDataSet:
 
         # Prepare ground truth
         for image_path in self.image_paths:
-            image_id = image_path.split("\\")[-1].replace(".jpg", "")
+
+            image_id = image_path.split("\\")[-1].split(".", 1)[0]
 
             image_ground_truth_df = self.ground_truth_df.loc[self.ground_truth_df["ImageID"] == image_id]
             image_ground_truth_df = image_ground_truth_df.loc[image_ground_truth_df["LabelName"].isin(class_code_list)]
 
             bboxes_index = image_ground_truth_df.index.tolist()
 
-            bboxes_coordinates = np.zeros(shape=(10, 2, 4), dtype=np.float32)
+            bboxes_coordinates = np.zeros(shape=(MAX_BBOXES, 2, 4), dtype=np.float32)
             bbox_count = 0
 
             # image = cv2.imread(image_path)
@@ -90,6 +107,7 @@ class OIDDataSet:
                     #                                            image_ground_truth_df.LabelName[bbox_index],
                     #                                            "LabelName"].tolist()[0]
 
+                    # ToDo: Maybe have a rationale to make labels in numbers (from 0 to n)
                     classes_name_one_hot_df = pd.get_dummies(self.class_description_df,
                                                              columns=["LabelName"],
                                                              prefix="Label")
@@ -101,6 +119,7 @@ class OIDDataSet:
                     class_name_one_hot = class_name_one_hot.iloc[0, :].tolist()
                     class_name_one_hot.append(0)
                     # Define coordinates bbox
+                    # ToDo: Change xy minmax system to yolo system (xcenter, ycenter, w, h)
                     bbox_coordinates = [x_min, y_min, x_max, y_max]
 
                     # Making ground truth variable for one image

@@ -7,7 +7,6 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib
-matplotlib.use("TkAgg")
 import os
 
 # Importing class for preprocess and getting images and labels (labels and coordinates of bbox)
@@ -15,6 +14,9 @@ from preprocessing_data import OIDDataSet
 
 # Importing global variables from globals.py
 from globals import CLASSES_NAME, CLASSES_PATH, TRAIN_DETECTION_BBOX, TRAIN_DETECTION_IMAGE_LABELS
+
+# Use
+# matplotlib.use("TkAgg")
 
 
 def train_model():
