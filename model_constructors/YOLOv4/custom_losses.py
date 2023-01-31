@@ -1,3 +1,6 @@
+## Code reference:
+# https://github.com/taipingeric/yolo-v4-tf.keras/blob/73dfe97c00a03ebb7fab00a5a0549b958172482a/loss.py
+
 import tensorflow as tf
 import keras.backend as K
 
@@ -172,11 +175,11 @@ def loss_layer(conv, pred, label, bboxes, stride, num_classes, iou_loss_thresh):
 def yolo_loss(args, num_classes, iou_loss_thresh, anchors):
     """
     Custom YOLO loss function for YOLO model;
-    :param args:
-    :param num_classes:
-    :param iou_loss_thresh:
-    :param anchors:
-    :return:
+    :param args: arguments with convolution, label for small, medium and large bboxes, and true bboxes;
+    :param num_classes :type int: number of classes in dataset;
+    :param iou_loss_thresh :type float: minimum overlap that counts as a valid detection;
+    :param anchors :type list: anchors for yolo model;
+    :return: sum of ciou, confidence and probabilities for yolo loss;
     """
     conv_sbbox = args[0]
     conv_mbbox = args[1]

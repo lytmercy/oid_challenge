@@ -15,3 +15,7 @@ yolo_config = {
     "iou_threshold": 0.413,
     "score_threshold": 0.3,
 }
+ssd_config = {}
+rcnn_config = {}
+retina_config = {}
+center_config = {}

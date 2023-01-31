@@ -9,11 +9,15 @@ from inference_model import getting_inference
 
 def main():
 
-    # Build model_weights
-    # oid_model = build_model()
+    # Build model
+    yolo_model = build_model("yolo")
 
-    # Training model_weights
-    oid_model = train_model()
+    # Training model
+    # yolo_model = train_model()
+
+    # Evaluate model
+
+    # Test model
 
 
 

@@ -1,3 +1,6 @@
+## Code reference:
+# https://github.com/taipingeric/yolo-v4-tf.keras/blob/73dfe97c00a03ebb7fab00a5a0549b958172482a/utils.py
+
 import tensorflow as tf
 from keras.utils import Sequence
 
@@ -61,12 +64,12 @@ def load_weights(model, weights_file_path):
             print(f"failed to read all weights, # of unread weights: {len(file.read())}")
 
 
-def get_detection_data(image, model_outputs, class_names):
+def get_detection_data(image, model_outputs, classes_name):
     """
 
     :param image:
     :param model_outputs:
-    :param class_names:
+    :param classes_name:
     :return:
     """
 
@@ -78,7 +81,7 @@ def get_detection_data(image, model_outputs, class_names):
     df[["x1", "x2"]] = (df[["x1", "x2"]] * w).astype("int64")
     df[["y1", "y2"]] = (df[["y1", "y2"]] * h).astype("int64")
 
-    df["class_name"] = np.array(class_names)[classes.astype("int64")]
+    df["class_name"] = np.array(classes_name)[classes.astype("int64")]
     df["score"] = scores
 
     df["w"] = df["x2"] - df ["x1"]
@@ -185,7 +188,40 @@ def voc_ap(rec, prec):
     return ap, mrec, mpre
 
 
+def adjust_axes(r, t, fig, axes):
+    """
+    Function for adjusting axes in plot;
+    :param r: renderer of plot;
+    :param t: text from plot;
+    :param fig: figure of plot;
+    :param axes: axes of plot;
+    """
+    # get text width for re-scaling
+    bb = t.get_window_extent(renderer=r)
+    text_width_inches = bb.width / fig.dpi
+    # get axis width in inches
+    current_fig_width = fig.get_figwidth()
+    new_fig_width = current_fig_width + text_width_inches
+    proportion = new_fig_width / current_fig_width
+    # get axis limit
+    x_lim = axes.get_xlim()
+    axes.set_xlim([x_lim[0], x_lim[1] * proportion])
+
+
 def draw_plot_func(dictionary, num_classes, window_title, plot_title, x_label, output_path, to_show, plot_color, true_p_bar):
+    """
+
+    :param dictionary:
+    :param num_classes:
+    :param window_title:
+    :param plot_title:
+    :param x_label:
+    :param output_path:
+    :param to_show:
+    :param plot_color:
+    :param true_p_bar:
+    :return:
+    """
     # sort the dictionary by decreasing value, into a list of tuples
     sorted_dic_by_value = sorted(dictionary.items(), key=operator.itemgetter(1))
     print(sorted_dic_by_value)
@@ -208,7 +244,83 @@ def draw_plot_func(dictionary, num_classes, window_title, plot_title, x_label, o
         plt.barh(range(num_classes), fp_sorted, align="center", color="forestgreen", label="True Positive", left=fp_sorted)
 
         # add legend
+        plt.legend(loc="lower right")
+
+        # Write number on side of bar
+        fig = plt.gcf()  # gcf - get current figure
+        axes = plt.gca()
+        r = fig.canvas.get_renderer()
+        for i, val in enumerate(sorted_values):
+            fp_val = fp_sorted[i]
+            tp_val = tp_sorted[i]
+            fp_str_val = " " + str(fp_val)
+            tp_str_val = fp_str_val + " " + str(tp_val)
+            # trick to paint multicolor with offset:
+            # first paint everything and then repaint the first number
+            t = plt.text(val, i, tp_str_val, color="forestgreen", va="center", fontweight="bold")
+            plt.text(val, i, fp_str_val, color="crimson", va="center", fontweight="bold")
+            if i == (len(sorted_values)-1):  # largest bar
+                adjust_axes(r, t, fig, axes)
+    else:
+        plt.banh(range(num_classes), sorted_values, color=plot_color)
+
+        # Write number on side of bar
+        fig = plt.gcf()  # gcf - get current figure
+        axes = plt.gca()
+        r = fig.canvas.get_renderer()
+        for i, val in enumerate(sorted_values):
+            str_val = " " + str(val)  # add a space before
+            if val < 1.0:
+                str_val = " {0:.2f}".format(val)
+            t = plt.text(val, i, str_val, color=plot_color, va="center", fontweight="bold")
+            # re-set axes to show number inside the figure
+            if i == (len(sorted_values)-1):  # largest bar
+                adjust_axes(r, t, fig, axes)
+    # set window title
+    fig.canvas.set_window_title(window_title)
+    # write classes in y-axis
+    tick_font_size = 12
+    plt.yticks(range(num_classes), sorted_keys, fontsize=tick_font_size)
+
+    # Re-scale height accordingly
+    init_height = fig.get_figheight()
+    # comput the matrix height in points and inches
+    dpi = fig.dpi
+    height_pt = num_classes * (tick_font_size * 1.4)  # 1.4 (some spacing)
+    height_in = height_pt / dpi
+    # compute the required figure height
+    top_margin = 0.15  # in percentage of the figure height
+    bottom_margin = 0.05  # in percantage of the figure height
+    figure_height = height_in / (1 - top_margin - bottom_margin)
+    # set new height
+    if figure_height > init_height:
+        fig.set_figheight(figure_height)
+
+    # set plot title
+    plt.title(plot_title, fontsize=14)
+    # set axis titles
+    # plt.xlabel("classes")
+    plt.xlabel(x_label, fontsize="large")
+    # adjust size of window
+    fig.tight_layout()
+    # save the plot
+    fig.savefig(output_path)
+    # show image
+    # if to_show:
+    plt.show()
+    # close the plot
+    # plt.close()
 
 
+def read_txt_to_list(path):
+    """
 
-
+    :param path:
+    :return:
+    """
+    # open txt file lines to a list
+    with open(path) as f:
+        content = f.readlines()
+    # remove whitespace characters like "\n" at the end of each line
+    content = [x.strip() for x in content]
+    return content

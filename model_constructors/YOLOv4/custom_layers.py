@@ -1,3 +1,6 @@
+## Code reference:
+# https://github.com/taipingeric/yolo-v4-tf.keras/blob/73dfe97c00a03ebb7fab00a5a0549b958172482a/custom_layers.py
+
 import tensorflow as tf
 from keras.initializers import initializers_v2 as initializers
 from keras.layers import ZeroPadding2D, Conv2D
@@ -144,14 +147,14 @@ def csp_darknet53(input):
 
 def get_boxes(pred, anchors, num_classes, grid_size, strides, xy_scale):
     """
-
-    :param pred:
-    :param anchors:
-    :param num_classes:
-    :param grid_size:
-    :param strides:
-    :param xy_scale:
-    :return:
+    Function for getting bbox for yolo heads;
+    :param pred: prediction output from yolo neck;
+    :param anchors :type list: anchors for box forming;
+    :param num_classes :type int: number of classes in dataset;
+    :param grid_size :type int: grid size for prediction in yolo model;
+    :param strides :type int: stride for box forming;
+    :param xy_scale :type float: scale size for box forming;
+    :return: predicted box in two coordinate (x1y1x2y2 and xy wh), and probabilities for object and class for this object.
     """
     pred = tf.reshape(pred,
                       (tf.shape(pred)[0],  # batch_size
@@ -184,12 +187,18 @@ def get_boxes(pred, anchors, num_classes, grid_size, strides, xy_scale):
 
 
 def yolo_neck(x, num_classes):
-    """Method for build model_weights neck."""
+    """
+    Function for build yolo neck;
+    :param x: input model layer;
+    :param num_classes :type int: number of classes in dataset;
+    :return: yolo neck output for small, medium and large bboxes.
+    """
     # Define model backbone
     backbone_model = csp_darknet53(x)
     # Define output of model backbone
     route0, route1, route2 = backbone_model.output
 
+    # Build model neck
     route_input = route2
     x = yolo_convolution(route2, 256, 1)
     x = UpSampling2D()(x)
@@ -248,12 +257,12 @@ def yolo_neck(x, num_classes):
 
 def yolo_head(yolo_neck_outputs, num_classes, anchors, xy_scale):
     """
-    Method for build model_weights heads
-    :param yolo_neck_outputs:
-    :param num_classes:
-    :param anchors:
-    :param xy_scale:
-    :return:
+    Function for build yolo heads;
+    :param yolo_neck_outputs: outputs from yolo model neck;
+    :param num_classes :type int: number of classes in dataset;
+    :param anchors :type list: anchors for yolo model;
+    :param xy_scale :type list: scale size for yolo model;
+    :return: yolo head, with predicted bbox and probabilities for small, medium and large bbox.
     """
     bbox0, object_probability0, class_probabilities0, pred_box0 = get_boxes(yolo_neck_outputs[0],
                                                                             anchors=anchors[0, :, :],
@@ -281,42 +290,42 @@ def yolo_head(yolo_neck_outputs, num_classes, anchors, xy_scale):
 def non_max_suppression(model_outputs, input_shape, num_classes, iou_threshold=0.413, score_threshold=0.3):
     """
     Apply Non-Maximum suppression;
-    ref: https://www.tensorflow.org/api_docs/python/tf/image/combined_non_max_suppression
-    :param model_outputs:
-    :param input_shape: tuple, it's size of image;
-    :param num_classes:
-    :param iou_threshold:
-    :param score_threshold:
-    :return:
+    ref: https://www.tensorflow.org/api_docs/python/tf/image/combined_non_max_suppression;
+    :param model_outputs: outputs from yolo architecture model;
+    :param input_shape :type tuple: it's size of image;
+    :param num_classes :type int: number of classes in dataset;
+    :param iou_threshold :type float: Minimum overlap that counts as a valid detection;
+    :param score_threshold :type float: Minimum confidence that counts as a valid detection;
+    :return: non-max suppressed boxes, scores & classes for boxes, and number of valid detections per batch item.
     """
-    bs = tf.shape(model_outputs[0])[0]
-    boxes = tf.zeros((bs, 0, 4))
-    confidence = tf.zeros((bs, 0, 1))
-    class_probabilities = tf.zeros((bs, 0, num_classes))
+    batch_size = tf.shape(model_outputs[0])[0]
+    boxes = tf.zeros((batch_size, 0, 4))
+    confidence = tf.zeros((batch_size, 0, 1))
+    class_probabilities = tf.zeros((batch_size, 0, num_classes))
 
     for output_idx in range(0, len(model_outputs), 4):
         output_xy = model_outputs[output_idx]
         output_conf = model_outputs[output_idx + 1]
         output_classes = model_outputs[output_idx + 2]
-        boxes = tf.concat([boxes, tf.reshape(output_xy, (bs, -1, 4))], axis=-1)
-        confidence = tf.concat([confidence, tf.reshape(output_conf, (bs, -1, 1))], axis=1)
-        class_probabilities = tf.concat([class_probabilities, tf.reshape(output_classes, (bs, -1, num_classes))], axis=1)
+        boxes = tf.concat([boxes, tf.reshape(output_xy, (batch_size, -1, 4))], axis=-1)
+        confidence = tf.concat([confidence, tf.reshape(output_conf, (batch_size, -1, 1))], axis=1)
+        class_probabilities = tf.concat([class_probabilities, tf.reshape(output_classes, (batch_size, -1, num_classes))], axis=1)
 
     scores = confidence * class_probabilities
     boxes = tf.expand_dims(boxes, axis=-2)
     boxes = boxes / input_shape[0]  # box normalization: relative image size
     print(f"non-max iou: {iou_threshold} score: {score_threshold}")
-    (non_max_sed_boxes,     # [bs, max_detections, 4]
-     non_max_sed_scores,    # [bs, max_detections]
-     non_max_sed_classes,   # [bs, max_detections]
+    (non_max_sed_boxes,     # [batch_size, max_detections, 4]
+     non_max_sed_scores,    # [batch_size, max_detections]
+     non_max_sed_classes,   # [batch_size, max_detections]
      valid_detections       # [batch_size]
      ) = tf.image.combined_non_max_suppression(
         boxes=boxes,  # y1x1, y2x2 [0~1]
         scores=scores,
         max_output_size_per_class=100,
         max_total_size=100,  # max_boxes: Maximum non_max_sed_boxes in a single img.
-        iou_threshold=iou_threshold,  # iou_threshold: Minimum overlap that counts as a valid detection.
-        score_threshold=score_threshold,  # Minimum confidence that counts as a valid detection.
+        iou_threshold=iou_threshold,
+        score_threshold=score_threshold,
     )
 
     return non_max_sed_boxes, non_max_sed_scores, non_max_sed_classes, valid_detections
