@@ -25,8 +25,8 @@ global ALLOW_IMAGE_FORMATS
 
 # Set globals
 BATCH_SIZE = 22
-IMAGE_SIZE = (224, 224)
-EPOCHS = 5
+IMAGE_SIZE = (256, 256)
+EPOCHS = 10
 CLASSES_NAME = ["Bear", "Bird", "Cat"]
 MAX_BBOXES = 10
 
