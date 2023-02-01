@@ -10,7 +10,7 @@ import numpy as np
 
 def xywh_to_x0y0x1y1(boxes):
     """
-    Function for converting x y and width height yolo coordinates to x0 y0 and x1 y1 coordinates;
+    Converting x y and width height yolo coordinates to x0 y0 and x1 y1 coordinates;
     :param boxes: boxes in yolo coordinates;
     :return: boxes in x0 y0 and x1 y1 coordinates.
     """
@@ -19,10 +19,10 @@ def xywh_to_x0y0x1y1(boxes):
 
 def bbox_iou(boxes1, boxes2):
     """
-    Intersection Over Union losses for yolo (xy & wh) coordinates;
-    :param boxes1:
-    :param boxes2:
-    :return:
+    Calculate Intersection Over Union loss for yolo (xy & wh) coordinates;
+    :param boxes1: first bbox for calculating (default prediction);
+    :param boxes2: second bbox for calculating default ground truth);
+    :return: calculated IoU.
     """
     boxes1_area = boxes1[..., 2] * boxes1[..., 3]  # w * h
     boxes2_area = boxes2[..., 2] * boxes2[..., 3]
@@ -44,10 +44,10 @@ def bbox_iou(boxes1, boxes2):
 
 def bbox_giou(boxes1, boxes2):
     """
-
-    :param boxes1:
-    :param boxes2:
-    :return:
+    Calculate generalized Intersection Over Union loss for yolo (xy & wh) coordinates;
+    :param boxes1: first bbox for calculating (default prediction);
+    :param boxes2: second bbox for calculating (default ground truth);
+    :return: calculated GIoU.
     """
     boxes1_area = boxes1[..., 2] * boxes1[..., 3]  # w * h
     boxes2_area = boxes2[..., 2] * boxes2[..., 3]
@@ -79,12 +79,12 @@ def bbox_giou(boxes1, boxes2):
 
 def decode(conv_output, anchors, stride, num_classes):
     """
-    Function for decoding ...
-    :param conv_output:
-    :param anchors:
-    :param stride:
-    :param num_classes:
-    :return:
+    Decoding raw convolution prediction data to xy wh coordinates, confidence and probabilities;
+    :param conv_output: keras convolution layer outputs;
+    :param anchors :type list: anchors for yolo model;
+    :param stride: stride for making prediction xy coordinate of bbox;
+    :param num_classes :type int: number of classes in dataset;
+    :return: concatenated, in one tensor, predictions of xy wh coordinate, confidence and probabilities.
     """
     conv_shape = tf.shape(conv_output)
     batch_size = conv_shape[0]
@@ -112,14 +112,14 @@ def decode(conv_output, anchors, stride, num_classes):
 def loss_layer(conv, pred, label, bboxes, stride, num_classes, iou_loss_thresh):
     """
     Custom loss layer for YOLO loss function;
-    :param conv:
-    :param pred:
-    :param label:
-    :param bboxes:
-    :param stride:
-    :param num_classes:
-    :param iou_loss_thresh:
-    :return:
+    :param conv: convolution Keras layer;
+    :param pred: predictions bbox from model;
+    :param label: labeled bbox from model;
+    :param bboxes: bboxes from model;
+    :param stride: stride for changing output_size from conv layer;
+    :param num_classes :type int: number of classes in dataset;
+    :param iou_loss_thresh: minimum overlap that counts as a valid detection;
+    :returns: ciou, confidence and probabilities losses.
     """
     conv_shape = tf.shape(conv)
     batch_size = conv_shape[0]
@@ -179,7 +179,7 @@ def yolo_loss(args, num_classes, iou_loss_thresh, anchors):
     :param num_classes :type int: number of classes in dataset;
     :param iou_loss_thresh :type float: minimum overlap that counts as a valid detection;
     :param anchors :type list: anchors for yolo model;
-    :return: sum of ciou, confidence and probabilities for yolo loss;
+    :returns: sum of ciou, confidence and probabilities for yolo loss;
     """
     conv_sbbox = args[0]
     conv_mbbox = args[1]

@@ -15,10 +15,10 @@ import os
 
 def load_weights(model, weights_file_path):
     """
-
-    :param model:
-    :param weights_file_path:
-    :raise info about reading file of weights.
+    Load weight for yolo model from file with weights;
+    :param model: yolo Keras model;
+    :param weights_file_path :type string: file path where is contained file with weights;
+    :raise info about reading file of weights or error about unread lines.
     """
 
     conv_layer_size = 110
@@ -64,13 +64,14 @@ def load_weights(model, weights_file_path):
             print(f"failed to read all weights, # of unread weights: {len(file.read())}")
 
 
-def get_detection_data(image, model_outputs, classes_name):
+def get_detection_data(image, model_outputs, class_names):
     """
-
-    :param image:
-    :param model_outputs:
-    :param classes_name:
-    :return:
+    Getting prediction data from image with yolo model outputs;
+    :param image: sample raw image from dataset;
+    :param model_outputs: yolo inference model outputs;
+    :param class_names :type list: list of object class names;
+    :return: pandas.DataFrame with yolo coordinate predictions bboxes coordinate,
+    class_name and score of probabilities for this class.
     """
 
     num_bboxes = model_outputs[-1][0]
@@ -81,7 +82,7 @@ def get_detection_data(image, model_outputs, classes_name):
     df[["x1", "x2"]] = (df[["x1", "x2"]] * w).astype("int64")
     df[["y1", "y2"]] = (df[["y1", "y2"]] * h).astype("int64")
 
-    df["class_name"] = np.array(classes_name)[classes.astype("int64")]
+    df["class_name"] = np.array(class_names)[classes.astype("int64")]
     df["score"] = scores
 
     df["w"] = df["x2"] - df ["x1"]
@@ -95,13 +96,13 @@ def draw_bbox(image, detections, cmap, random_color=True, fig_size=(10, 10), sho
     """
     Draw bounding boxes on the image;
     :param image: BGR image;
-    :param detections:
-    :param cmap:
-    :param random_color:
-    :param fig_size:
-    :param show_image:
-    :param show_text:
-    :return:
+    :param detections :type pandas.DataFrame: containing detections;
+    :param cmap: object color map;
+    :param random_color: assign random color for each object;
+    :param fig_size: assign size of figure for plot;
+    :param show_image: if True -- plot image with bboxes;
+    :param show_text: if True -- plot text over bboxes;
+    :return: processed image.
     """
 
     image = np.array(image)
@@ -131,7 +132,7 @@ def draw_bbox(image, detections, cmap, random_color=True, fig_size=(10, 10), sho
 
 def voc_ap(rec, prec):
     """
-    Calculate the AP given the recall and precision array
+    Calculate the AP (Average Precision) given the recall and precision array
     1st) We compute a version of the measured precision/recall curve with
          precision monotonically decreasing
     2nd) We compute the AP as the area under this curve by numerical integration.
@@ -145,9 +146,9 @@ def voc_ap(rec, prec):
     i=find(mrec(2:end)~=mrec(1:end-1))+1;
     ap=sum((mrec(i)-mrec(i-1)).*mpre(i));
 
-    :param rec:
-    :param prec:
-    :return:
+    :param rec: recall array for calculating;
+    :param prec: precision array for calculating;
+    :return: average precision, mean recall, mean precision.
     """
 
     rec.insert(0, 0.0)  # insert 0.0 at begining of list
@@ -190,7 +191,7 @@ def voc_ap(rec, prec):
 
 def adjust_axes(r, t, fig, axes):
     """
-    Function for adjusting axes in plot;
+    Adjusting axes in plot;
     :param r: renderer of plot;
     :param t: text from plot;
     :param fig: figure of plot;
@@ -210,17 +211,16 @@ def adjust_axes(r, t, fig, axes):
 
 def draw_plot_func(dictionary, num_classes, window_title, plot_title, x_label, output_path, to_show, plot_color, true_p_bar):
     """
-
-    :param dictionary:
-    :param num_classes:
-    :param window_title:
-    :param plot_title:
-    :param x_label:
-    :param output_path:
-    :param to_show:
-    :param plot_color:
-    :param true_p_bar:
-    :return:
+    Draw plot with image with bboxes; (TP - True Positive, FP - False Positive, FN - False Negative);
+    :param dictionary: dictionary with
+    :param num_classes :type int: number of classes in dataset;
+    :param window_title :type string: text for window title;
+    :param plot_title :type string: text for plot title;
+    :param x_label :type string: text for labeling x axes;
+    :param output_path :type string: file path for saving formed plot;
+    :param to_show :type boolean: if True then the plot will be shown;
+    :param plot_color: alternate color for colouring TP, FP, FN predictions in the plot;
+    :param true_p_bar: true predicted bar for colouring TP, FP and FN predictions in the plot;
     """
     # sort the dictionary by decreasing value, into a list of tuples
     sorted_dic_by_value = sorted(dictionary.items(), key=operator.itemgetter(1))
@@ -314,9 +314,9 @@ def draw_plot_func(dictionary, num_classes, window_title, plot_title, x_label, o
 
 def read_txt_to_list(path):
     """
-
-    :param path:
-    :return:
+    Read txt file and convert text line to py list;
+    :param path: path to file;
+    :return: content from this file in py list format.
     """
     # open txt file lines to a list
     with open(path) as f:

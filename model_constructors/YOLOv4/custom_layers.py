@@ -20,7 +20,7 @@ def mish(x):
 
 def yolo_convolution(x, filters, kernel_size, downsampling=False, activation='leaky', batch_norm=True):
     """
-    Function for forming Convolution Layer for YOLO model;
+    Forming Convolution Layer for YOLO model;
     :param x: Keras previous layer;
     :param filters: int, number of filters for convolution layer;
     :param kernel_size: int, kernel size of filters for convolution layer;
@@ -147,14 +147,14 @@ def csp_darknet53(input):
 
 def get_boxes(pred, anchors, num_classes, grid_size, strides, xy_scale):
     """
-    Function for getting bbox for yolo heads;
+    Getting bbox for yolo heads;
     :param pred: prediction output from yolo neck;
     :param anchors :type list: anchors for box forming;
     :param num_classes :type int: number of classes in dataset;
     :param grid_size :type int: grid size for prediction in yolo model;
     :param strides :type int: stride for box forming;
     :param xy_scale :type float: scale size for box forming;
-    :return: predicted box in two coordinate (x1y1x2y2 and xy wh), and probabilities for object and class for this object.
+    :returns: predicted box in two coordinate (x1y1x2y2 and xy wh), and probabilities for object and class for this object.
     """
     pred = tf.reshape(pred,
                       (tf.shape(pred)[0],  # batch_size
@@ -188,7 +188,7 @@ def get_boxes(pred, anchors, num_classes, grid_size, strides, xy_scale):
 
 def yolo_neck(x, num_classes):
     """
-    Function for build yolo neck;
+    Build yolo neck;
     :param x: input model layer;
     :param num_classes :type int: number of classes in dataset;
     :return: yolo neck output for small, medium and large bboxes.
@@ -257,7 +257,7 @@ def yolo_neck(x, num_classes):
 
 def yolo_head(yolo_neck_outputs, num_classes, anchors, xy_scale):
     """
-    Function for build yolo heads;
+    Build yolo heads;
     :param yolo_neck_outputs: outputs from yolo model neck;
     :param num_classes :type int: number of classes in dataset;
     :param anchors :type list: anchors for yolo model;
@@ -296,7 +296,7 @@ def non_max_suppression(model_outputs, input_shape, num_classes, iou_threshold=0
     :param num_classes :type int: number of classes in dataset;
     :param iou_threshold :type float: Minimum overlap that counts as a valid detection;
     :param score_threshold :type float: Minimum confidence that counts as a valid detection;
-    :return: non-max suppressed boxes, scores & classes for boxes, and number of valid detections per batch item.
+    :returns: non-max suppressed boxes, scores & classes for boxes, and number of valid detections per batch item.
     """
     batch_size = tf.shape(model_outputs[0])[0]
     boxes = tf.zeros((batch_size, 0, 4))

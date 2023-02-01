@@ -30,9 +30,9 @@ class YOLOv4(object):
     """Class of YOLOv4 model for build and entire forming this model."""
     def __init__(self, weight_path=None, config=yolo_config):
         """
-
-        :param weight_path:
-        :param config:
+        Initialise yolo config variables, weight path and yolo models (default, training  and inference);
+        :param weight_path: path to file with weight for yolo model;
+        :param config: dict config with variable for yolo model;
         """
 
         # assert config["image_size"][0] == config["image_size"][1], "not support yet"
@@ -67,9 +67,9 @@ class YOLOv4(object):
 
     def build_yolo(self, load_pretrained=True):
         """
-        Method for entire forming of YOLO model_weights with all components (backbone, neck and heads);
-        :param load_pretrained:
-        :return:
+        Entire forming of the YOLO model with all components (backbone, neck and heads);
+        :param load_pretrained: if True then model will load weights from file;
+        :returns: formed yolo default, training and inference model.
         """
         # core yolo model
         input_layer = Input(self.image_size)
@@ -110,9 +110,9 @@ class YOLOv4(object):
 
     def load_model(self, path):
         """
-
-        :param path:
-        :return:
+        Load yolo model for default and inference model with Keras function keras.models.load_model;
+        :param path: path to file with model in ".h5" format ar model weight;
+        :return: yolo default and inference model.
         """
         self.yolo_model = load_model(path, compile=False)
         yolov4_output = yolo_head(self.yolo_model.output, self.num_classes, self.anchors, self.xy_scale)
@@ -122,17 +122,16 @@ class YOLOv4(object):
 
     def save_model(self, path):
         """
-
-        :param path:
-        :return:
+        Saving yolo model with keras method ".save()" for class keras.models.Model().
+        :param path: path to file where save model in ".h5" format;
         """
         self.yolo_model.save(path)
 
     def preprocess_image(self, image):
         """
-
-        :param image:
-        :return:
+        Preprocess image for yolo model;
+        :param image: sample raw image from dataset;
+        :return: preprocessed image.
         """
         image = cv2.resize(image, self.image_size[:2])
         image = image / 255.
@@ -140,13 +139,12 @@ class YOLOv4(object):
 
     def yolo_fit(self, train_data_gen, epochs, val_data_gen=None, initial_epoch=0, callbacks=None):
         """
-
-        :param train_data_gen:
-        :param epochs:
-        :param val_data_gen:
-        :param initial_epoch:
-        :param callbacks:
-        :return:
+        Fit yolo model with keras method ".fit()" for class keras.models.Model().
+        :param train_data_gen: training data generator;
+        :param epochs :type int: number of epochs for fitting process;
+        :param val_data_gen: validation data generator;
+        :param initial_epoch :type int: initial epoch for fitting process;
+        :param callbacks :type list: of callbacks for fitting process;
         """
         self.training_model.fit(train_data_gen,
                                 steps_per_epoch=len(train_data_gen),
@@ -158,14 +156,14 @@ class YOLOv4(object):
 
     def predict_image(self, raw_image, random_color=True, plot_image=True, fig_size=(10, 10), show_text=True, return_output=False):
         """
-
-        :param raw_image:
-        :param random_color:
-        :param plot_image:
-        :param fig_size:
-        :param show_text:
-        :param return_output:
-        :return:
+        Predicting image with inference yolo model;
+        :param raw_image: sample raw image from dataset;
+        :param random_color: if True -- color will be random in draw_bbox() function;
+        :param plot_image: if True -- image will be shown in plot after detection;
+        :param fig_size: size of figure in plot;
+        :param show_text: if True -- text will be shown over bboxes in plot;
+        :param return_output: if True -- function return output image after prediction (with bboxes);
+        :returns: detections data (and if return_output==True -- return image with detections data).
         """
         print("image shape: ", raw_image.shape)
         image = self.preprocess_image(raw_image)
@@ -185,13 +183,13 @@ class YOLOv4(object):
 
     def predict(self, image_path, random_color=True, plot_image=True, fig_size=(10, 10), show_text=True):
         """
-
-        :param image_path:
-        :param random_color:
-        :param plot_image:
-        :param fig_size:
-        :param show_text:
-        :return:
+        Predict bboxes and label for image that given;
+        :param image_path: path to image that will be use in prediction;
+        :param random_color: if True -- color will be random in predict_image() method;
+        :param plot_image: if True -- image will be shown in plot after prediction;
+        :param fig_size: size of figure in plot;
+        :param show_text: if True -- text will be shown over bboxes in plot;
+        :return: prediction result from predict_image() method.
         """
         raw_image = cv2.imread(image_path)[:, :, ::-1]
         return self.predict_image(raw_image, random_color, plot_image, fig_size, show_text)
