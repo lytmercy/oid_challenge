@@ -1,6 +1,6 @@
 # Importing TensorFlow & Keras libraries
 import tensorflow as tf
-from keras.utils import image_utils, dataset_utils
+from keras.utils import image_utils, dataset_utils, Sequence
 
 # Importing other libraries
 import numpy as np
@@ -10,6 +10,7 @@ import os
 
 # Importing global variables
 from globals import BATCH_SIZE, IMAGE_SIZE, ALLOW_IMAGE_FORMATS, MAX_BBOXES
+from model_constructors.configs import yolo_config
 
 
 class OIDDataSet:
@@ -55,12 +56,8 @@ class OIDDataSet:
     def getting_dataset(self, subset="train"):
         """"""
         # Prepare base path
-        if subset == "train":
-            self.base_path = "dataset\\train"
-        elif subset == "validation":
-            self.base_path = "dataset\\validation"
-        elif subset == "test":
-            self.base_path = "dataset\\test"
+        assert subset == "train" or subset == "validation" or subset == "test", "Not valid subset name! Please check subset name."
+        self.base_path = f"dataset\\{subset}"
 
         # Prepare image paths
         self.image_paths, _, _ = dataset_utils.index_directory(self.base_path, labels=None,
@@ -112,18 +109,18 @@ class OIDDataSet:
                                                              columns=["LabelName"],
                                                              prefix="Label")
 
-                    class_name_one_hot = classes_name_one_hot_df.loc[classes_name_one_hot_df["LabelCode"] ==
+                    classes_name_one_hot = classes_name_one_hot_df.loc[classes_name_one_hot_df["LabelCode"] ==
                                                                      image_ground_truth_df.LabelName[bbox_index],
                                                                      ["Label_Bear", "Label_Bird", "Label_Cat"]]
 
-                    class_name_one_hot = class_name_one_hot.iloc[0, :].tolist()
-                    class_name_one_hot.append(0)
+                    classes_name_one_hot = classes_name_one_hot.iloc[0, :].tolist()
+                    classes_name_one_hot.append(0)
                     # Define coordinates bbox
-                    # ToDo: Change xy minmax system to yolo system (xcenter, ycenter, w, h)
+                    # ToDo: Change xy minmax system to yolo system (cx, cy, w, h)
                     bbox_coordinates = [x_min, y_min, x_max, y_max]
 
                     # Making ground truth variable for one image
-                    labeled_bbox = tf.constant([class_name_one_hot, bbox_coordinates], dtype=tf.float32)
+                    labeled_bbox = tf.constant([classes_name_one_hot, bbox_coordinates], dtype=tf.float32)
 
                     # Filling numpy array with labeled bbox
                     bboxes_coordinates[bbox_count] = labeled_bbox
@@ -177,3 +174,97 @@ class OIDDataSet:
         image = tf.image.resize(image, self.image_size, method=self.interpolation)
         image.set_shape((self.image_size[0], self.image_size[1], self.color_channels))
         return image/255.
+
+
+def form_classes_code_list(class_description_df, class_names):
+    """
+    Forming pandas.DataFrame with classes codes and classes what they mean (classes name);
+    :param class_description_df :type pandas.DataFrame: That contains a list of all classes from the dataset and their codes;
+    :param class_names :type list: of class names that will be use in this project;
+    :return: formed pandas.DataFrame with classes codes and classes what they mean that will be use in this project;
+    """
+
+    # Prepare class description dataframe
+    class_description_df = class_description_df.loc[
+        class_description_df["LabelName"].isin(class_names)
+    ]
+    # Prepare class code list
+    classes_codes_list = class_description_df.loc[:, "LabelCode"].tolist()
+
+    return classes_codes_list
+
+class KerasOIDDataset(Sequence):
+    """"""
+    def __init__(self, subset, list_ids, grond_truth_df, classes_codes_df, annotation_lines,
+                 label_mode="binary", batch_size=BATCH_SIZE, image_size=IMAGE_SIZE, max_boxes=MAX_BBOXES,
+                 color_channels=3, random_seed=17, shuffle=True, interpolation="bilinear"):
+        """
+        Init method for remaining all information about a dataset;
+        :param grond_truth_df: pandas DataFrame that contains all names & boundary boxes of the image;
+        :param classes_codes_df :type pandas.DataFrame: that contains a list of needed classes for this project;
+        :param label_mode: String describing the encoding of "labels". Options are:
+                            - "binary" indicates that the labels (there can be only 2) are encoded as
+                              'float32' scalars with values 0 or 1 (e.g. for 'binary_crossentropy').
+                            - "categorical" means that the labels are mapped into a categorical vector.
+                              (e.g. for 'categorical_crossentropy' loss).
+        :param batch_size: int size of batch for Dataset;
+        :param image_size: tuples with 2 int numbers that be width and height of an image;
+        :param color_channels: int number of colour encoding channels in an image;
+        :param random_seed: int number of random state for getting same result from dataset everytime;
+        :param shuffle: boolean variable that says shuffle this dataset or not;
+        :param interpolation: string with the name of the interpolation method for resizing an image.
+        """
+
+        self.base_path = f"dataset\\{subset}"
+        self.list_ids = list_ids
+        self.ground_truth_df = grond_truth_df
+        self.classes_codes_list = classes_codes_df
+        self.annotation_lines = annotation_lines
+        self.num_classes = len(classes_codes_df)
+        self.label_mode = label_mode
+        self.batch_size = batch_size
+        self.image_size = image_size
+        self.color_channels = color_channels
+        self.random_seed = random_seed
+        self.shuffle = shuffle
+        self.num_gpu = 1
+        self.anchors = np.arange(yolo_config["anchors"]).reshape((9, 2))
+        self.num_indexes = np.arange(len(self.annotation_lines))
+        self.max_boxes = max_boxes
+
+        # init indexes for store all indexes
+        # self.labels = np.array([[]])
+        self.indexes = None
+
+        self.interpolation = image_utils.get_interpolation(interpolation)
+        self.on_epoch_end()
+
+    def __len__(self):
+        """"""
+        return int(np.floor(len(self.list_ids) / self.batch_size))
+
+    def __getitem__(self, index):
+        """"""
+
+        # Generate indexes of the batch
+        indexes = self.indexes[index * self.batch_size:(index+1) * self.batch_size]
+
+        # Find list of IDs
+        list_ids_batch = [self.list_ids[k] for k in indexes]
+
+        # Generate X
+
+    def on_epoch_end(self):
+        """"""
+
+        self.indexes = np.arange(len(self.list_ids))
+        if self.shuffle is True:
+            np.random.seed(self.random_seed)
+            np.random.shuffle(self.indexes)
+
+
+    def __data_generation(self):
+        """"""
+
+
+

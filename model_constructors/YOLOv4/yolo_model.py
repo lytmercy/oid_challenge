@@ -71,6 +71,7 @@ class YOLOv4(object):
         :param load_pretrained: if True then model will load weights from file;
         :returns: formed yolo default, training and inference model.
         """
+
         # core yolo model
         input_layer = Input(self.image_size)
         yolov4_output = yolo_neck(input_layer, self.num_classes)
@@ -114,6 +115,7 @@ class YOLOv4(object):
         :param path: path to file with model in ".h5" format ar model weight;
         :return: yolo default and inference model.
         """
+
         self.yolo_model = load_model(path, compile=False)
         yolov4_output = yolo_head(self.yolo_model.output, self.num_classes, self.anchors, self.xy_scale)
         self.inference_model = Model(self.yolo_model.input,
@@ -125,6 +127,7 @@ class YOLOv4(object):
         Saving yolo model with keras method ".save()" for class keras.models.Model().
         :param path: path to file where save model in ".h5" format;
         """
+
         self.yolo_model.save(path)
 
     def preprocess_image(self, image):
@@ -133,6 +136,7 @@ class YOLOv4(object):
         :param image: sample raw image from dataset;
         :return: preprocessed image.
         """
+
         image = cv2.resize(image, self.image_size[:2])
         image = image / 255.
         return image
@@ -146,6 +150,7 @@ class YOLOv4(object):
         :param initial_epoch :type int: initial epoch for fitting process;
         :param callbacks :type list: of callbacks for fitting process;
         """
+
         self.training_model.fit(train_data_gen,
                                 steps_per_epoch=len(train_data_gen),
                                 validation_data=val_data_gen,
@@ -165,6 +170,7 @@ class YOLOv4(object):
         :param return_output: if True -- function return output image after prediction (with bboxes);
         :returns: detections data (and if return_output==True -- return image with detections data).
         """
+
         print("image shape: ", raw_image.shape)
         image = self.preprocess_image(raw_image)
         images = np.expand_dims(image, axis=0)
@@ -191,6 +197,7 @@ class YOLOv4(object):
         :param show_text: if True -- text will be shown over bboxes in plot;
         :return: prediction result from predict_image() method.
         """
+
         raw_image = cv2.imread(image_path)[:, :, ::-1]
         return self.predict_image(raw_image, random_color, plot_image, fig_size, show_text)
 

@@ -15,6 +15,7 @@ def mish(x):
     :param x: Keras Conv Layer;
     :return: mish activation function.
     """
+
     return x * tf.math.tanh(tf.math.softplus(x))
 
 
@@ -67,6 +68,7 @@ def yolo_residual_block(x, filters1, filters2, activation="leaky"):
     :param activation: string, activation function for model, default: leaky relu;
     :return: Keras "Add" layer with x (previous layer) and y (new layer).
     """
+
     y = yolo_convolution(x, filters1, kernel_size=1, activation=activation)
     y = yolo_convolution(y, filters2, kernel_size=3, activation=activation)
     return Add()([x, y])
@@ -83,6 +85,7 @@ def csp_block(x, residual_out, repeat, residual_bottleneck=False):
     :param residual_bottleneck: boolean, for deciding make bottleneck in residual block or not;
     :return: new concatenate layer with previous x layers new residual block layer.
     """
+
     route = x
     route = yolo_convolution(route, residual_out, 1, activation="mish")
     x = yolo_convolution(x, residual_out, 1, activation="mish")
@@ -104,6 +107,7 @@ def csp_darknet53(input):
     :param input: Input layer;
     :return: Keras model with yolo_conv & csp_block layers.
     """
+
     x = yolo_convolution(input, 32, 3)
     x = yolo_convolution(x, 64, 3, downsampling=True)
 
@@ -156,6 +160,7 @@ def get_boxes(pred, anchors, num_classes, grid_size, strides, xy_scale):
     :param xy_scale :type float: scale size for box forming;
     :returns: predicted box in two coordinate (x1y1x2y2 and xy wh), and probabilities for object and class for this object.
     """
+
     pred = tf.reshape(pred,
                       (tf.shape(pred)[0],  # batch_size
                        grid_size,
@@ -193,6 +198,7 @@ def yolo_neck(x, num_classes):
     :param num_classes :type int: number of classes in dataset;
     :return: yolo neck output for small, medium and large bboxes.
     """
+
     # Define model backbone
     backbone_model = csp_darknet53(x)
     # Define output of model backbone
@@ -264,6 +270,7 @@ def yolo_head(yolo_neck_outputs, num_classes, anchors, xy_scale):
     :param xy_scale :type list: scale size for yolo model;
     :return: yolo head, with predicted bbox and probabilities for small, medium and large bbox.
     """
+
     bbox0, object_probability0, class_probabilities0, pred_box0 = get_boxes(yolo_neck_outputs[0],
                                                                             anchors=anchors[0, :, :],
                                                                             num_classes=num_classes,
@@ -298,6 +305,7 @@ def non_max_suppression(model_outputs, input_shape, num_classes, iou_threshold=0
     :param score_threshold :type float: Minimum confidence that counts as a valid detection;
     :returns: non-max suppressed boxes, scores & classes for boxes, and number of valid detections per batch item.
     """
+
     batch_size = tf.shape(model_outputs[0])[0]
     boxes = tf.zeros((batch_size, 0, 4))
     confidence = tf.zeros((batch_size, 0, 1))
@@ -329,5 +337,3 @@ def non_max_suppression(model_outputs, input_shape, num_classes, iou_threshold=0
     )
 
     return non_max_sed_boxes, non_max_sed_scores, non_max_sed_classes, valid_detections
-
-
