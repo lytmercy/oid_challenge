@@ -21,7 +21,7 @@ def build_model(model_name):
     model = None
     # Assign model
     if model_name == "yolov4":
-        model = YOLOv4()
+        model = YOLOv4(weight_path=None)
     # elif model_name == "ssd":
     #     model = SSD()
     # elif model_name == "rcnn":

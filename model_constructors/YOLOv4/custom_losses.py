@@ -160,7 +160,7 @@ def loss_layer(conv, pred, label, bboxes, stride, num_classes, iou_loss_thresh):
     conf_focal = tf.pow(respond_bbox - pred_conf, 2)
 
     conf_loss = conf_focal * (
-        respond_bbox * tf.nn.sigmoid_cross_entropy_with_logits(labels=respond_bbox, logtis=conv_raw_conf)
+        respond_bbox * tf.nn.sigmoid_cross_entropy_with_logits(labels=respond_bbox, logits=conv_raw_conf)
         +
         respond_bgd * tf.nn.sigmoid_cross_entropy_with_logits(labels=respond_bbox, logits=conv_raw_conf)
     )

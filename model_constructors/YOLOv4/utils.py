@@ -77,10 +77,10 @@ def get_detection_data(image, model_outputs, class_names):
     num_bboxes = model_outputs[-1][0]
     boxes, scores, classes = [output[0][:num_bboxes] for output in model_outputs[:-1]]
 
-    h, w = image.shape[:2]
+    height, width = image.shape[:2]
     df = pd.DataFrame(boxes, columns=["x1", "y1", "x2", "y2"])
-    df[["x1", "x2"]] = (df[["x1", "x2"]] * w).astype("int64")
-    df[["y1", "y2"]] = (df[["y1", "y2"]] * h).astype("int64")
+    df[["x1", "x2"]] = (df[["x1", "x2"]] * width).astype("int64")
+    df[["y1", "y2"]] = (df[["y1", "y2"]] * height).astype("int64")
 
     df["class_name"] = np.array(class_names)[classes.astype("int64")]
     df["score"] = scores
@@ -262,7 +262,7 @@ def draw_plot_func(dictionary, num_classes, window_title, plot_title, x_label, o
             if i == (len(sorted_values)-1):  # largest bar
                 adjust_axes(r, t, fig, axes)
     else:
-        plt.banh(range(num_classes), sorted_values, color=plot_color)
+        plt.barh(range(num_classes), sorted_values, color=plot_color)
 
         # Write number on side of bar
         fig = plt.gcf()  # gcf - get current figure

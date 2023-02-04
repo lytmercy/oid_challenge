@@ -27,7 +27,7 @@ global ALLOW_IMAGE_FORMATS
 BATCH_SIZE = 22
 IMAGE_SIZE = (256, 256)
 EPOCHS = 10
-CLASSES_NAME = ["Bear", "Bird", "Cat"]
+CLASSES_NAME = ["Bird", "Bear", "Cat"]
 MAX_BBOXES = 10
 
 CLASSES_PATH = "dataset\\class-descriptions.csv"

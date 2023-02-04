@@ -54,7 +54,7 @@ class YOLOv4(object):
         self.max_boxes = config["max_boxes"]
         self.iou_loss_thresh = config["iou_loss_thresh"]
         self.config = config
-        assert self.num_classes < 0, "no classes detected!"
+        assert self.num_classes > 0, "no classes detected!"
 
         K.clear_session()
         if self.config["num_gpu"] > 1:
@@ -151,6 +151,7 @@ class YOLOv4(object):
         :param callbacks :type list: of callbacks for fitting process;
         """
 
+        # ToDo: Continue refactor code for testing model
         self.training_model.fit(train_data_gen,
                                 steps_per_epoch=len(train_data_gen),
                                 validation_data=val_data_gen,

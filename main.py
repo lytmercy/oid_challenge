@@ -10,10 +10,10 @@ from inference_model import getting_inference
 def main():
 
     # Build model
-    # yolo_model = build_model("yolo")
+    yolo_model = build_model("yolov4")
 
     # Training model
-    yolo_model = train_model()
+    yolo_model = train_model(yolo_model)
 
     # Evaluate model
 

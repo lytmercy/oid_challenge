@@ -233,7 +233,7 @@ def yolo_neck(x, num_classes):
     x = yolo_convolution(x, 256, 3)
     conv_sbbox = yolo_convolution(x, 3 * (num_classes + 5), 1, activation=None, batch_norm=False)
 
-    x = yolo_convolution(route1, 256, 3, downsampling=True)
+    x = yolo_convolution(route0, 256, 3, downsampling=True)
     x = Concatenate()([x, route1])
 
     x = yolo_convolution(x, 256, 1)
@@ -315,7 +315,7 @@ def non_max_suppression(model_outputs, input_shape, num_classes, iou_threshold=0
         output_xy = model_outputs[output_idx]
         output_conf = model_outputs[output_idx + 1]
         output_classes = model_outputs[output_idx + 2]
-        boxes = tf.concat([boxes, tf.reshape(output_xy, (batch_size, -1, 4))], axis=-1)
+        boxes = tf.concat([boxes, tf.reshape(output_xy, (batch_size, -1, 4))], axis=1)
         confidence = tf.concat([confidence, tf.reshape(output_conf, (batch_size, -1, 1))], axis=1)
         class_probabilities = tf.concat([class_probabilities, tf.reshape(output_classes, (batch_size, -1, num_classes))], axis=1)
 
