@@ -11,7 +11,7 @@ yolo_config = {
     "num_gpu": 1,  # 2,
 
     # Inference
-    "max_boxes": 100,
+    "max_boxes": 50,
     "iou_threshold": 0.413,
     "score_threshold": 0.3,
 }

@@ -13,9 +13,10 @@ def main():
     yolo_model = build_model("yolov4")
 
     # Training model
-    yolo_model = train_model(yolo_model)
+    yolo_model = train_model(yolo_model, "yolo")
 
     # Evaluate model
+    # getting_inference()
 
     # Test model
 

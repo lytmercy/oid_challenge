@@ -6,15 +6,10 @@ import keras.backend as K
 
 # Import other libraries
 import numpy as np
+import sys
 
-
-def xywh_to_x0y0x1y1(boxes):
-    """
-    Converting x y and width height yolo coordinates to x0 y0 and x1 y1 coordinates;
-    :param boxes: boxes in yolo coordinates;
-    :return: boxes in x0 y0 and x1 y1 coordinates.
-    """
-    return tf.concat([boxes[..., :2] - boxes[..., 2:] * 0.5, boxes[..., :2] + boxes[..., 2:] * 0.5], axis=-1)
+# Import utils function for loss function
+from model_constructors.YOLOv4.utils import xywh_to_x0y0x1y1
 
 
 def bbox_iou(boxes1, boxes2):
@@ -60,8 +55,8 @@ def bbox_giou(boxes1, boxes2):
     top_left = tf.maximum(boxes1[..., :2], boxes2[..., :2])
     bottom_right = tf.minimum(boxes1[..., 2:], boxes2[..., 2:])
     intersection_xy = tf.maximum(bottom_right - top_left, 0.0)
-
     intersection_area = intersection_xy[..., 0] * intersection_xy[..., 1]
+
     union_area = boxes1_area + boxes2_area - intersection_area
 
     # Define iou

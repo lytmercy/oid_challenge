@@ -284,13 +284,13 @@ def draw_plot_func(dictionary, num_classes, window_title, plot_title, x_label, o
 
     # Re-scale height accordingly
     init_height = fig.get_figheight()
-    # comput the matrix height in points and inches
+    # compute the matrix height in points and inches
     dpi = fig.dpi
     height_pt = num_classes * (tick_font_size * 1.4)  # 1.4 (some spacing)
     height_in = height_pt / dpi
     # compute the required figure height
     top_margin = 0.15  # in percentage of the figure height
-    bottom_margin = 0.05  # in percantage of the figure height
+    bottom_margin = 0.05  # in percentage of the figure height
     figure_height = height_in / (1 - top_margin - bottom_margin)
     # set new height
     if figure_height > init_height:
@@ -310,6 +310,20 @@ def draw_plot_func(dictionary, num_classes, window_title, plot_title, x_label, o
     plt.show()
     # close the plot
     # plt.close()
+
+
+def xywh_to_x0y0x1y1(bbox):
+    """
+    Convert yolo bbox (center_x center_y and width height of bbox) coordinate to x1,y1,x2,y2 bbox coordinate;
+    :param bbox:
+    bbox[0] == (center_x) center in x-axis of bbox;
+    bbox[1] == (center_y) center in y-axis of bbox;
+    bbox[2] == width of bbox;
+    bbox[3] == height of bbox;
+    :return: bbox in x1 y1 and x2 y2 coordinates format.
+    """
+    return tf.concat([bbox[..., :2] - bbox[..., 2:] * 0.5,
+                      bbox[..., :2] + bbox[..., 2:] * 0.5], axis=-1)
 
 
 def read_txt_to_list(path):
