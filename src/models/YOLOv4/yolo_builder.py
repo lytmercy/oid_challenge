@@ -9,21 +9,16 @@ from keras.models import Model, load_model
 
 # Importing other libraries
 import numpy as np
-import matplotlib.pyplot as plt
 import cv2
-import os
-import json
-
 
 # Import yolo libraries
 from model_constructors.configs import yolo_config
-from model_constructors.YOLOv4.custom_losses import yolo_loss
+from src.models.YOLOv4.custom_losses import yolo_loss
 from model_constructors.YOLOv4.custom_layers import yolo_neck, yolo_head, non_max_suppression
 from model_constructors.YOLOv4.utils import load_weights, get_detection_data, draw_bbox
-from model_constructors.YOLOv4.utils import voc_ap, draw_plot_func, read_txt_to_list
 
 # Import global variables
-from globals import CLASSES_NAME
+from src.globals import CLASSES_NAME
 
 
 class YOLOv4(object):

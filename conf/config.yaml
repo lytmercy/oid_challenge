@@ -1,0 +1,36 @@
+dataset:
+  files:
+    class_description: input/dataset/class-descriptions.csv
+    train_bbox: input/dataset/train-annotations-bbox.csv
+    train_image_labels: input/dataset/train-images.csv
+    valid_bbox: input/dataset/validation-annotations-bbox.csv
+    valid_image_labels: input/dataset/validation-images.csv
+    test_bbox: input/dataset/test-annotations-bbox.csv
+    test_image_labels: input/dataset/test-images.csv
+  paths:
+    train_dir: input/dataset/train
+    valid_dir: input/dataset/validation
+    test_dir : input/dataset/test
+model:
+  paths:
+    model_paths:
+      YOLOv4:
+      SSD:
+      RCNN:
+      RetinaNet:
+      CenterNet:
+    weight_paths:
+      YOLOv4:
+      SSD:
+      RCNN:
+      RetinaNet:
+      CenterNet:
+preprocessing_params:
+  image_size: [256, 256]
+  allow_image_formats: [".jpg", ".jpeg", "png"]
+train_params:
+  batch_size: 22
+  epochs: 10
+
+
+

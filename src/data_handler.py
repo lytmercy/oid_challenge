@@ -9,7 +9,7 @@ import os
 
 # Importing global variables
 from globals import BATCH_SIZE, IMAGE_SIZE, MAX_BBOXES
-from model_constructors.configs import yolo_config
+from src.models.configs import yolo_config
 
 
 def form_classes_code_list(class_description_path, class_names):

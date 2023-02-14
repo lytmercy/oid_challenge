@@ -1,8 +1,7 @@
 # Importing TensorFlow & Keras libraries
-import tensorflow as tf
 
-# Import model constructors
-from model_constructors.YOLOv4.yolo_model import YOLOv4
+# Import model models
+from src.models.YOLOv4.yolo_builder import YOLOv4
 
 
 def build_model(model_name):
@@ -20,8 +19,15 @@ def build_model(model_name):
     # Define model variable
     model = None
     # Assign model
-    if model_name == "yolov4":
-        model = YOLOv4(weight_path=None)
+    match model_name:
+        case "yolov4": model = YOLOv4(weight_path=None)
+        # case "ssd": model = SSD()
+        # case "rcnn": model = RCNN()
+        # case "retinanet": model = RetinaNet()
+        # case "centernet": model = CenterNet()
+
+    # if model_name == "yolov4":
+    #     model = YOLOv4(weight_path=None)
     # elif model_name == "ssd":
     #     model = SSD()
     # elif model_name == "rcnn":
