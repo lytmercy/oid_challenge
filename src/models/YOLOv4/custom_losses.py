@@ -9,7 +9,7 @@ import numpy as np
 import sys
 
 # Import utils function for loss function
-from model_constructors.YOLOv4.utils import xywh_to_x0y0x1y1
+from src.models.YOLOv4.utils import xywh_to_x0y0x1y1
 
 
 def bbox_iou(boxes1, boxes2):
@@ -34,7 +34,9 @@ def bbox_iou(boxes1, boxes2):
     intersection_area = intersection_xy[..., 0] * intersection_xy[..., 1]
     union_area = boxes1_area + boxes2_area - intersection_area
 
-    return 1.0 * intersection_area / (union_area + K.epsilon())
+    iou = 1.0 * intersection_area / (union_area + K.epsilon())
+
+    return iou, union_area
 
 
 def bbox_giou(boxes1, boxes2):
@@ -44,23 +46,25 @@ def bbox_giou(boxes1, boxes2):
     :param boxes2: second bbox for calculating (default ground truth);
     :return: calculated GIoU.
     """
-    boxes1_area = boxes1[..., 2] * boxes1[..., 3]  # w * h
-    boxes2_area = boxes2[..., 2] * boxes2[..., 3]
+    # boxes1_area = boxes1[..., 2] * boxes1[..., 3]  # w * h
+    # boxes2_area = boxes2[..., 2] * boxes2[..., 3]
+    #
+    # # (x,y,w,h) -> (x0,y0,x1,y1)
+    # boxes1 = xywh_to_x0y0x1y1(boxes1)
+    # boxes2 = xywh_to_x0y0x1y1(boxes2)
+    #
+    # # coordinates of intersection
+    # top_left = tf.maximum(boxes1[..., :2], boxes2[..., :2])
+    # bottom_right = tf.minimum(boxes1[..., 2:], boxes2[..., 2:])
+    # intersection_xy = tf.maximum(bottom_right - top_left, 0.0)
+    # intersection_area = intersection_xy[..., 0] * intersection_xy[..., 1]
+    #
+    # union_area = boxes1_area + boxes2_area - intersection_area
+    #
+    # # Define iou
+    # iou = 1.0 * intersection_area / (union_area + K.epsilon())
 
-    # (x,y,w,h) -> (x0,y0,x1,y1)
-    boxes1 = xywh_to_x0y0x1y1(boxes1)
-    boxes2 = xywh_to_x0y0x1y1(boxes2)
-
-    # coordinates of intersection
-    top_left = tf.maximum(boxes1[..., :2], boxes2[..., :2])
-    bottom_right = tf.minimum(boxes1[..., 2:], boxes2[..., 2:])
-    intersection_xy = tf.maximum(bottom_right - top_left, 0.0)
-    intersection_area = intersection_xy[..., 0] * intersection_xy[..., 1]
-
-    union_area = boxes1_area + boxes2_area - intersection_area
-
-    # Define iou
-    iou = 1.0 * intersection_area / (union_area + K.epsilon())
+    iou, union_area = bbox_iou(boxes1, boxes2)
 
     enclose_top_left = tf.minimum(boxes1[..., :2], boxes2[..., :2])
     enclose_bottom_right = tf.maximum(boxes1[..., 2:], boxes2[..., 2:])

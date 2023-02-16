@@ -101,14 +101,14 @@ def csp_block(x, residual_out, repeat, residual_bottleneck=False):
     return x
 
 
-def csp_darknet53(input):
+def csp_darknet53(input_layer):
     """
     DarkNet network with Cross Stage Partial Network block;
-    :param input: Input layer;
+    :param input_layer: Input layer;
     :return: Keras model with yolo_conv & csp_block layers.
     """
 
-    x = yolo_convolution(input, 32, 3)
+    x = yolo_convolution(input_layer, 32, 3)
     x = yolo_convolution(x, 64, 3, downsampling=True)
 
     x = csp_block(x, residual_out=64, repeat=1, residual_bottleneck=True)
@@ -146,7 +146,7 @@ def csp_darknet53(input):
     x = yolo_convolution(x, 1024, 3)
     route2 = yolo_convolution(x, 512, 1)
 
-    return Model(input, [route0, route1, route2])
+    return Model(input_layer, [route0, route1, route2])
 
 
 def get_boxes(pred, anchors, num_classes, grid_size, strides, xy_scale):

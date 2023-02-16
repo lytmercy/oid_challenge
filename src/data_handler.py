@@ -7,26 +7,16 @@ import numpy as np
 import pandas as pd
 import os
 
-# Importing global variables
-from globals import BATCH_SIZE, IMAGE_SIZE, MAX_BBOXES
-from src.models.configs import yolo_config
 
-
-def form_classes_code_list(class_description_path, class_names):
+def form_classes_code_list(class_description_path):
     """
     Forming pandas.DataFrame with classes codes and classes what they mean (classes name);
     :param class_description_path :type string: path to file with class description data;
-    :param class_names :type list: of class names that will be use in this project;
     :return: formed pandas.DataFrame with classes codes and classes what they mean that will be use in this project;
     """
 
     class_description_df = pd.read_csv(class_description_path)
     class_description_df.columns = ["LabelCode", "LabelName"]
-
-    # Prepare class description dataframe
-    class_description_df = class_description_df.loc[
-        class_description_df["LabelName"].isin(class_names)
-    ]
 
     # Prepare class code list
     classes_codes_list = class_description_df.loc[:, "LabelCode"].tolist()
@@ -34,12 +24,12 @@ def form_classes_code_list(class_description_path, class_names):
     return classes_codes_list, class_description_df
 
 
-def load_prepare_image(image_path, image_size):
+def load_prepare_image(image_path, image_size, color_channels):
     """"""
 
     image = tf.io.read_file(image_path)
     tensor_image_size = tf.constant(image_size)
-    decoded_image = tf.image.decode_image(image, channels=3)  # colour images
+    decoded_image = tf.image.decode_image(image, channels=color_channels)  # colour images
     # Tale actual image size
     actual_image_size = decoded_image.shape
     # Convert uint8 tensor to floats in the [0, 1] range
@@ -135,57 +125,43 @@ def preprocess_true_boxes(true_boxes, input_shape, anchors, num_classes):
 
 class OIDDataset(Sequence):
     """"""
-    def __init__(self, subset, list_ids, ground_truth_df, classes_codes_list, class_description_df, mode="fit",
-                 model_type="yolo", label_mode="binary", color_channels=3, random_seed=17, shuffle=True,
-                 interpolation="bilinear"):
+    def __init__(self, subset, list_ids, ground_truth_df, classes_codes_list, config,
+                 model_config, mode="fit", color_channels=3, random_seed=17, shuffle=True):
         """
         Init method for remaining all information about a dataset;
         :param ground_truth_df: pandas DataFrame that contains all names & boundary boxes of the image;
         :param classes_codes_list :type pandas.DataFrame: that contains a list of needed classes for this project;
-        :param label_mode: String describing the encoding of "labels". Options are:
-                            - "binary" indicates that the labels (there can be only 2) are encoded as
-                              'float32' scalars with values 0 or 1 (e.g. for 'binary_crossentropy').
-                            - "categorical" means that the labels are mapped into a categorical vector.
-                              (e.g. for 'categorical_crossentropy' loss).
-        :param batch_size: int size of batch for Dataset;
-        :param image_size: tuples with 2 int numbers that be width and height of an image;
+
         :param color_channels: int number of colour encoding channels in an image;
         :param random_seed: int number of random state for getting same result from dataset everytime;
         :param shuffle: boolean variable that says shuffle this dataset or not;
-        :param interpolation: string with the name of the interpolation method for resizing an image.
         """
 
-        self.base_path = f"dataset\\{subset}"
+        self.base_path = f"input/dataset/{subset}"
         self.list_ids = list_ids
         self.ground_truth_df = ground_truth_df
         self.classes_codes_list = classes_codes_list
-        self.class_description_df = class_description_df
         self.num_classes = len(classes_codes_list)
-        self.label_mode = label_mode
         self.color_channels = color_channels
         self.random_seed = random_seed
         self.shuffle = shuffle
         self.mode = mode
-        self.num_gpu = 1
-        self.anchors = np.array(yolo_config["anchors"]).reshape((9, 2))
+        self.config = config
+        self.model_config = model_config
+        self.num_gpu = config.train.num_gpu
+        self.anchors = np.array(model_config.anchors).reshape((9, 2))
 
-        if model_type == "yolo":
-            self.batch_size = yolo_config["batch_size"]
-            self.image_size = yolo_config["image_size"][:2]
-            self.max_boxes = yolo_config["max_boxes"]
-        else:
-            self.batch_size = BATCH_SIZE
-            self.image_size = IMAGE_SIZE
-            self.max_boxes = MAX_BBOXES
-
-        # init indexes for store all indexes for loading to batch
-        self.indexes = None
+        self.batch_size = self.config.train.batch_size
+        self.image_size = self.model_config.image_size
+        self.max_boxes = self.model_config.max_boxes
 
         self.image_paths = []
         for image_path in os.listdir(self.base_path):
-            self.image_paths.append(os.path.join(f"{self.base_path}\\", image_path))
+            self.image_paths.append(os.path.join(self.base_path, image_path))
+        self.image_paths = np.array(self.image_paths)
 
-        self.interpolation = image_utils.get_interpolation(interpolation)
+        # init indexes for store all indexes for loading to batch
+        self.indexes = None
         self.on_epoch_end()
 
     def __len__(self):
@@ -245,7 +221,7 @@ class OIDDataset(Sequence):
         """"""
 
         # Take image and actual image size from image path
-        image_data, actual_image_size = load_prepare_image(image_path, self.image_size)
+        image_data, actual_image_size = load_prepare_image(image_path, self.image_size, self.color_channels)
 
         # Make scale number for scaling bbox for changed image size
         height, width = self.image_size
@@ -277,4 +253,3 @@ class OIDDataset(Sequence):
             bbox_data[:len(boxes)] = boxes
 
         return image_data, bbox_data
-

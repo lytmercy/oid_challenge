@@ -64,12 +64,12 @@ def load_weights(model, weights_file_path):
             print(f"failed to read all weights, # of unread weights: {len(file.read())}")
 
 
-def get_detection_data(image, model_outputs, class_names):
+def get_detection_data(image, model_outputs, classes_name):
     """
     Getting prediction data from image with yolo model outputs;
     :param image: sample raw image from dataset;
     :param model_outputs: yolo inference model outputs;
-    :param class_names :type list: list of object class names;
+    :param classes_name :type list: list of object class names;
     :return: pandas.DataFrame with yolo coordinate predictions bboxes coordinate,
     class_name and score of probabilities for this class.
     """
@@ -82,7 +82,7 @@ def get_detection_data(image, model_outputs, class_names):
     df[["x1", "x2"]] = (df[["x1", "x2"]] * width).astype("int64")
     df[["y1", "y2"]] = (df[["y1", "y2"]] * height).astype("int64")
 
-    df["class_name"] = np.array(class_names)[classes.astype("int64")]
+    df["class_name"] = np.array(classes_name)[classes.astype("int64")]
     df["score"] = scores
 
     df["w"] = df["x2"] - df ["x1"]

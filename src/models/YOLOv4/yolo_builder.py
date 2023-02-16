@@ -12,47 +12,47 @@ import numpy as np
 import cv2
 
 # Import yolo libraries
-from model_constructors.configs import yolo_config
 from src.models.YOLOv4.custom_losses import yolo_loss
-from model_constructors.YOLOv4.custom_layers import yolo_neck, yolo_head, non_max_suppression
-from model_constructors.YOLOv4.utils import load_weights, get_detection_data, draw_bbox
-
-# Import global variables
-from src.globals import CLASSES_NAME
+from src.models.YOLOv4.custom_layers import yolo_neck, yolo_head, non_max_suppression
+from src.models.YOLOv4.utils import load_weights, get_detection_data, draw_bbox
 
 
 class YOLOv4(object):
     """Class of YOLOv4 model for build and entire forming this model."""
-    def __init__(self, weight_path=None, config=yolo_config):
+    def __init__(self, config, model_config, classes_name, weight_path=None):
         """
         Initialise yolo config variables, weight path and yolo models (default, training  and inference);
-        :param weight_path: path to file with weight for yolo model;
         :param config: dict config with variable for yolo model;
+        :param weight_path: path to file with weight for yolo model.
         """
 
         # assert config["image_size"][0] == config["image_size"][1], "not support yet"
-        assert config["image_size"][0] % config["strides"][-1] == 0, "must be a multiple of last stride"
-        self.yolo_model = None
-        self.training_model = None
-        self.inference_model = None
-        self.classes_name = CLASSES_NAME
-        self.image_size = config["image_size"]
+        assert model_config.image_size[0] % model_config.strides[-1] == 0, "must be a multiple of last stride"
+        self.classes_name = classes_name
+        self.image_size = model_config.image_size
+        self.color_channels = model_config.color_channels
         self.num_classes = len(self.classes_name)
         self.weight_path = weight_path
-        self.anchors = np.array(config["anchors"]).reshape((3, 3, 2))
-        self.xy_scale = config["xy_scale"]
-        self.strides = config["strides"]
+        self.anchors = np.array(model_config.anchors).reshape((3, 3, 2))
+        self.xy_scale = model_config.xy_scale
+        self.strides = model_config.strides
         self.output_sizes = [self.image_size[0] // s for s in self.strides]
         self.class_color = {name: list(np.random.random(size=3) * 255) for name in self.classes_name}
 
+        # Define model types
+        self.yolo_model = None
+        self.training_model = None
+        self.inference_model = None
+
         # Training
-        self.max_boxes = config["max_boxes"]
-        self.iou_loss_thresh = config["iou_loss_thresh"]
+        self.max_boxes = model_config.max_boxes
+        self.iou_loss_thresh = model_config.iou_loss_thresh
         self.config = config
+        self.model_config = model_config
         assert self.num_classes > 0, "no classes detected!"
 
         K.clear_session()
-        if self.config["num_gpu"] > 1:
+        if self.config.train.num_gpu > 1:
             mirrored_strategy = tf.distribute.MirroredStrategy()
             with mirrored_strategy.scope():
                 self.build_yolo(load_pretrained=True if self.weight_path else False)
@@ -68,7 +68,7 @@ class YOLOv4(object):
         """
 
         # core yolo model
-        input_layer = Input(self.image_size)
+        input_layer = Input(self.image_size + (self.color_channels,))
         yolov4_output = yolo_neck(input_layer, self.num_classes)
         self.yolo_model = Model(input_layer, yolov4_output)
 
@@ -90,8 +90,8 @@ class YOLOv4(object):
         # output: [boxes, scores, classes, valid_detections]
         self.inference_model = Model(input_layer,
                                      non_max_suppression(yolov4_output, self.image_size, self.num_classes,
-                                                         iou_threshold=self.config["iou_threshold"],
-                                                         score_threshold=self.config["score_threshold"]))
+                                                         iou_threshold=self.model_config.iou_threshold,
+                                                         score_threshold=self.model_config.score_threshold))
 
         if load_pretrained and self.weight_path and self.weight_path.endswith(".weights"):
             if self.weight_path.endswith(".weights"):
@@ -146,7 +146,6 @@ class YOLOv4(object):
         :param callbacks :type list: of callbacks for fitting process;
         """
 
-        # ToDo: Continue refactor code for testing model
         self.training_model.fit(train_data_gen,
                                 steps_per_epoch=len(train_data_gen),
                                 validation_data=val_data_gen,
