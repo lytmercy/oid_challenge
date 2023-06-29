@@ -1,55 +1,57 @@
 # Dataset parameters (paths with image, and path to ground truth files)
 dataset:
-  files:
-    # Classes description
-    classes_description: input/dataset/class-descriptions.csv
-    # Training ground truth
-    train_bbox: input/dataset/train-annotations-bbox.csv
-    train_image_labels: input/dataset/train-images.csv
-    # Validation ground truth
-    valid_bbox: input/dataset/validation-annotations-bbox.csv
-    valid_image_labels: input/dataset/validation-images.csv
-    # Test Ground truth
-    test_bbox: input/dataset/test-annotations-bbox.csv
-    test_image_labels: input/dataset/test-images.csv
+  # Root folder
+  root: "input/dataset"
+  # Classes description
+  class_desc: "class-descriptions.csv"
+  # Training ground truth
+  train_bbox: "train-annotations-bbox.csv"
+  train_image_labels: "train-images.csv"
+  # Validation ground truth
+  valid_bbox: "validation-annotations-bbox.csv"
+  valid_image_labels: "validation-images.csv"
+  # Test Ground truth
+  test_bbox: "test-annotations-bbox.csv"
+  test_image_labels: "test-images.csv"
   # Paths to images
-  paths:
-    train_images: input/dataset/train
-    valid_images: input/dataset/validation
-    test_images: input/dataset/test
+  images:
+    train: "train"
+    valid: "validation"
+    test: "test"
 
 # Model parameters for saving entire model or them weights
 model_paths:
+  entire: "models/trained/model"
+  weights: "models/trained/weights"
+  # Checkpoint paths
+  checkpoint:
+    # Save entire model path
+    entire: "models/checkpoint/model"
+    # Weights path
+    weights: "models/checkpoint/weights"
+  # Model names for unique folder naming
   models:
-    YOLOv4: model/saved_models/YOLOv4
-    SSD: model/saved_models/SSD
-    RCNN: model/saved_models/RCNN
-    RetinaNet: model/saved_models/RetinaNet
-    CenterNet: model/saved_models/CenterNet
-  weights:
-    YOLOv4: model/weights/YOLOv4
-    SSD: model/weights/SSD
-    RCNN: model/weights/RCNN
-    RetinaNet: model/weights/RetinaNet
-    CenterNet: model/weights/CenterNet
+    YOLOv4: "yolo"
+    SSD: "ssd"
+    RCNN: "rcnn"
+    RetinaNet: "retina"
+    CenterNet: "center"
 
 # Output paths for image with predicted bbox
 output:
-  pred_image: output/images
+  pred_image: "output/images"
 
 # Preprocess default parameters for all models
-preprocessing:
+preprocess:
   image_size: [416, 416]
   color_channels: 3
+  batch_size: 8
   allow_image_formats: [".jpg", ".jpeg", "png"]
 
-# Train default parameters for all models
-train:
-  batch_size: 8
+# Default hyperparameters for all models
+hyper:
   epochs: 10
   initial_epoch: 0
-  num_gpu: 1 # 2
-
-# Inference default parameters for all models
-inference:
   max_boxes: 100
+
+num_gpu: 1 # 2

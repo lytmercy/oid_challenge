@@ -5,49 +5,25 @@ from keras.utils import image_utils, dataset_utils, Sequence
 # Importing other libraries
 import numpy as np
 import pandas as pd
+from pathlib import Path
+from attrdict import AttrDict
 import os
 
-
-def form_classes_code_list(class_description_path):
-    """
-    Forming pandas.DataFrame with classes codes and classes what they mean (classes name);
-    :param class_description_path :type string: path to file with class description data;
-    :return: formed pandas.DataFrame with classes codes and classes what they mean that will be use in this project;
-    """
-
-    class_description_df = pd.read_csv(class_description_path)
-    class_description_df.columns = ["LabelCode", "LabelName"]
-
-    # Prepare class code list
-    classes_codes_list = class_description_df.loc[:, "LabelCode"].tolist()
-
-    return classes_codes_list, class_description_df
+# Import utils functions
+from src.utils import load_prepare_image
 
 
-def load_prepare_image(image_path, image_size, color_channels):
-    """"""
-
-    image = tf.io.read_file(image_path)
-    tensor_image_size = tf.constant(image_size)
-    decoded_image = tf.image.decode_image(image, channels=color_channels)  # colour images
-    # Tale actual image size
-    actual_image_size = decoded_image.shape
-    # Convert uint8 tensor to floats in the [0, 1] range
-    decoded_image = tf.image.convert_image_dtype(decoded_image, tf.float32)
-    # Resize the image into image_size
-    decoded_image = tf.image.resize(decoded_image, size=tensor_image_size)
-
-    return decoded_image, actual_image_size
-
-
-def preprocess_true_boxes(true_boxes, input_shape, anchors, num_classes):
+def preprocess_true_boxes(true_boxes: np.ndarray,
+                          input_shape: tuple,
+                          anchors: list,
+                          num_classes: int) -> tuple[list[np.ndarray], np.ndarray]:
     """
     Preprocess true boxes to training input format;
-    :param true_boxes :type array: shape=(batch_size, max_boxes_per_image, 5);
+    :param true_boxes: shape=(batch_size, max_boxes_per_image, 5);
     Absolute x_min, y_min, x_max, y_max, class_id relative to input_shape;
-    :param input_shape :type list: height & width of image;
-    :param anchors :type array: anchors for yolo model (shape=(N, 2), (9, width height));
-    :param num_classes :type int: number of classes from dataset;
+    :param input_shape: height & width of image;
+    :param anchors: anchors for yolo model (shape=(N, 2), (9, width height));
+    :param num_classes: number of classes from dataset;
     :returns: y_true: list of array;
               shape: like yolo_outputs;
               xy & width height (wh): relative bbox value for yolo model.
@@ -66,7 +42,7 @@ def preprocess_true_boxes(true_boxes, input_shape, anchors, num_classes):
     true_boxes[..., 2:4] = true_boxes_wh/input_shape[::-1]  # wh
 
     batch_size = true_boxes.shape[0]
-    grid_sizes = [input_shape//{0:8, 1:16, 2:32}[stage] for stage in range(num_stages)]
+    grid_sizes = [input_shape//{0: 8, 1: 16, 2: 32}[stage] for stage in range(num_stages)]
     # [(?, 52, 52, 3, 5 + num_classes) (?, 26, 26, 3, 5 + num_classes) (?, 13, 13, 3, 5 + num_classes)]
     y_true = [np.zeros((batch_size,
                         grid_sizes[stage][0],
@@ -74,7 +50,6 @@ def preprocess_true_boxes(true_boxes, input_shape, anchors, num_classes):
                         bbox_per_grid,
                         5+num_classes), dtype="float32")
               for stage in range(num_stages)]
-
 
     y_true_boxes_xywh = np.concatenate((true_boxes_xy, true_boxes_wh), axis=-1)
     # Expand dim to apply broadcasting
@@ -87,7 +62,8 @@ def preprocess_true_boxes(true_boxes, input_shape, anchors, num_classes):
         # Discard zero rows
         width_height = true_boxes_wh[batch_idx, valid_mask[batch_idx]]  # (# of bbox, 2)
         num_boxes = len(width_height)
-        if num_boxes == 0: continue
+        if num_boxes == 0:
+            continue
         width_height = np.expand_dims(width_height, axis=-2)  # (# of bbox, 1, 2)
         box_maxes = width_height / 2.  # (# of bbox, 1, 2)
         box_mins = -box_maxes  # (# of bbox, 1, 2)
@@ -116,7 +92,7 @@ def preprocess_true_boxes(true_boxes, input_shape, anchors, num_classes):
                     class_idx = true_boxes[batch_idx, box_idx, 4].astype("int32")
                     y_true[stage][batch_idx, grid_row, grid_col, anchor_idx, :2] = true_boxes_xy[batch_idx, box_idx, :]  # abs xy
                     y_true[stage][batch_idx, grid_row, grid_col, anchor_idx, 2:4] = true_boxes_wh[batch_idx, box_idx, :]  # abs wh
-                    y_true[stage][batch_idx, grid_row, grid_col, anchor_idx, 4] = 1 # confidence
+                    y_true[stage][batch_idx, grid_row, grid_col, anchor_idx, 4] = 1  # confidence
 
                     y_true[stage][batch_idx, grid_row, grid_col, anchor_idx, 5 + class_idx] = 1  # one-hot encoding
 
@@ -125,40 +101,49 @@ def preprocess_true_boxes(true_boxes, input_shape, anchors, num_classes):
 
 class OIDDataset(Sequence):
     """"""
-    def __init__(self, subset, list_ids, ground_truth_df, classes_codes_list, config,
-                 model_config, mode="fit", color_channels=3, random_seed=17, shuffle=True):
+    def __init__(self,
+                 subset: str,
+                 list_ids: list,
+                 ground_truth_df: pd.DataFrame,
+                 classes_codes_list: list,
+                 config: AttrDict,
+                 model_config: AttrDict,
+                 mode: str = "fit",
+                 color_channels: int = 3,
+                 random_seed: int = 17,
+                 shuffle: bool = True):
         """
         Init method for remaining all information about a dataset;
         :param ground_truth_df: pandas DataFrame that contains all names & boundary boxes of the image;
-        :param classes_codes_list :type pandas.DataFrame: that contains a list of needed classes for this project;
+        :param classes_codes_list: that contains a list of needed classes for this project;
 
         :param color_channels: int number of colour encoding channels in an image;
         :param random_seed: int number of random state for getting same result from dataset everytime;
         :param shuffle: boolean variable that says shuffle this dataset or not;
         """
 
-        self.base_path = f"input/dataset/{subset}"
+        self.config = config
+        self.model_config = model_config
         self.list_ids = list_ids
-        self.ground_truth_df = ground_truth_df
+        self.gt_df = ground_truth_df
+        self.anchors = np.array(model_config.anchors).reshape((9, 2))
         self.classes_codes_list = classes_codes_list
         self.num_classes = len(classes_codes_list)
         self.color_channels = color_channels
         self.random_seed = random_seed
         self.shuffle = shuffle
         self.mode = mode
-        self.config = config
-        self.model_config = model_config
-        self.num_gpu = config.train.num_gpu
-        self.anchors = np.array(model_config.anchors).reshape((9, 2))
+        self.num_gpu = config.num_gpu
+        self.images_root = Path(self.config.dataset.root) / subset
 
-        self.batch_size = self.config.train.batch_size
+        self.batch_size = self.config.preprocess.batch_size
         self.image_size = self.model_config.image_size
         self.max_boxes = self.model_config.max_boxes
 
-        self.image_paths = []
-        for image_path in os.listdir(self.base_path):
-            self.image_paths.append(os.path.join(self.base_path, image_path))
-        self.image_paths = np.array(self.image_paths)
+        self.images_paths = []
+        for image_id in os.listdir(self.images_root):
+            self.images_paths.append(self.images_root / image_id)
+        self.images_paths = np.array(self.images_paths)
 
         # init indexes for store all indexes for loading to batch
         self.indexes = None
@@ -168,9 +153,15 @@ class OIDDataset(Sequence):
         """"""
         return int(np.floor(len(self.list_ids) / self.batch_size))
 
+    def on_epoch_end(self):
+        """"""
+        self.indexes = np.arange(len(self.list_ids))
+        if self.shuffle is True:
+            np.random.seed(self.random_seed)
+            np.random.shuffle(self.indexes)
+
     def __getitem__(self, index):
         """"""
-
         # Generate indexes of the batch
         indexes = self.indexes[index * self.batch_size:(index+1) * self.batch_size]
 
@@ -192,24 +183,14 @@ class OIDDataset(Sequence):
             # When mode is not "fit" or "predict" then rise Attribute Error
             raise AttributeError("The mode parameter should be set to 'fit' or 'predict'.")
 
-    def on_epoch_end(self):
-        """"""
-
-        self.indexes = np.arange(len(self.list_ids))
-        if self.shuffle is True:
-            np.random.seed(self.random_seed)
-            np.random.shuffle(self.indexes)
-
-
     def __data_generation(self, list_ids_batch):
         """"""
-
-        X = np.empty((len(list_ids_batch), *self.image_size +(self.color_channels,)), dtype=np.float32)
+        X = np.empty((len(list_ids_batch), *self.image_size + (self.color_channels,)), dtype=np.float32)
 
         y_bbox = np.empty((len(list_ids_batch), self.max_boxes, 5), dtype=np.float32)  # x1y1x2y2
 
         for i, image_id in enumerate(list_ids_batch):
-            image_data, bbox_data = self.get_data(image_id, self.image_paths[i])
+            image_data, bbox_data = self.get_data(image_id, self.images_paths[i])
             X[i] = image_data
             y_bbox[i] = bbox_data
 
@@ -219,16 +200,15 @@ class OIDDataset(Sequence):
 
     def get_data(self, image_id, image_path):
         """"""
-
         # Take image and actual image size from image path
-        image_data, actual_image_size = load_prepare_image(image_path, self.image_size, self.color_channels)
+        image_data, actual_image_size = load_prepare_image(str(image_path), self.image_size, self.color_channels)
 
         # Make scale number for scaling bbox for changed image size
         height, width = self.image_size
         image_height, image_width = actual_image_size[0], actual_image_size[1]
         scale_width, scale_height = width / image_width, height / image_height
 
-        bboxes_df = self.ground_truth_df.loc[self.ground_truth_df["ImageID"] == image_id]
+        bboxes_df = self.gt_df.loc[self.gt_df["ImageID"] == image_id]
         bboxes_df = bboxes_df.loc[bboxes_df["Label"].isin(self.classes_codes_list),
                                   ["XMin", "YMin", "XMax", "YMax", "Label"]]
 
@@ -249,7 +229,7 @@ class OIDDataset(Sequence):
             np.random.shuffle(boxes)
             boxes = boxes[:self.max_boxes]
             boxes[:, [0, 2]] = boxes[:, [0, 2]] * scale_width  # + dx
-            boxes[:, [1, 3]] = boxes[:, [1, 3]] * scale_height # + dy
+            boxes[:, [1, 3]] = boxes[:, [1, 3]] * scale_height  # + dy
             bbox_data[:len(boxes)] = boxes
 
         return image_data, bbox_data

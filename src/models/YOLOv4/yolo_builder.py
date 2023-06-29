@@ -1,4 +1,4 @@
-## Code reference:
+# Code reference:
 # https://github.com/taipingeric/yolo-v4-tf.keras/blob/73dfe97c00a03ebb7fab00a5a0549b958172482a/models.py
 
 import tensorflow as tf
@@ -21,7 +21,7 @@ class YOLOv4(object):
     """Class of YOLOv4 model for build and entire forming this model."""
     def __init__(self, config, model_config, classes_name, weight_path=None):
         """
-        Initialise yolo config variables, weight path and yolo models (default, training  and inference);
+        Initialize yolo config variables, weight path and yolo models (default, training  and inference);
         :param config: dict config with variable for yolo model;
         :param weight_path: path to file with weight for yolo model.
         """
@@ -30,7 +30,7 @@ class YOLOv4(object):
         assert model_config.image_size[0] % model_config.strides[-1] == 0, "must be a multiple of last stride"
         self.classes_name = classes_name
         self.image_size = model_config.image_size
-        self.color_channels = model_config.color_channels
+        self.color_channels = config.preprocess.color_channels
         self.num_classes = len(self.classes_name)
         self.weight_path = weight_path
         self.anchors = np.array(model_config.anchors).reshape((3, 3, 2))
@@ -38,6 +38,8 @@ class YOLOv4(object):
         self.strides = model_config.strides
         self.output_sizes = [self.image_size[0] // s for s in self.strides]
         self.class_color = {name: list(np.random.random(size=3) * 255) for name in self.classes_name}
+        self.model_config = model_config
+        self.config = config
 
         # Define model types
         self.yolo_model = None
@@ -47,18 +49,15 @@ class YOLOv4(object):
         # Training
         self.max_boxes = model_config.max_boxes
         self.iou_loss_thresh = model_config.iou_loss_thresh
-        self.config = config
-        self.model_config = model_config
         assert self.num_classes > 0, "no classes detected!"
 
         K.clear_session()
-        if self.config.train.num_gpu > 1:
+        if self.config.num_gpu > 1:
             mirrored_strategy = tf.distribute.MirroredStrategy()
             with mirrored_strategy.scope():
                 self.build_yolo(load_pretrained=True if self.weight_path else False)
         else:
             self.build_yolo(load_pretrained=True if self.weight_path else False)
-
 
     def build_yolo(self, load_pretrained=True):
         """
